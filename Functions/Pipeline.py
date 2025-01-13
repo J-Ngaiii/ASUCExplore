@@ -13,3 +13,17 @@ from rapidfuzz import fuzz, process
 
 from .Utils import Column_Converter
 
+def SU_Cont_Processor(df):
+    """
+    Expected Intake: Df with following columns: 
+    """
+
+def OASIS_Standard_Processor(df):
+    """
+    Expected Intake: Df with following columns: 
+    """
+
+def Ficomm_Dataset_Processor(ficomm_agenda, FR_sheets, OASISMaster):
+    """
+    Expected Intake: Df with following columns: 
+    """
