@@ -11,7 +11,46 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
+def is_type(inpt, t):
+    # private function
+    return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
+
+def in_df(inpt, df):
+    #private function
+    assert is_type(inpt, str) or is_type(inpt, int), 'inpt must be string, int or list of strings or ints.'
+    if isinstance(inpt, str): 
+        return inpt in df.columns
+    elif isinstance(inpt, int):
+        assert inpt >= 0, 'integer inpt values must be non-negative.'
+        return inpt < len(df.columns)
+    elif isinstance(inpt[0], str):
+        return pd.Series(inpt).isin(df.columns).all()
+    elif isinstance(inpt[0], int):
+        return all(pd.Series(inpt) < len(df.columns))
+
+
+def concatonater(input_df, base_df, sort_cols=None):
+    #private
+    assert input_df.columns == base_df.columns, 'Mismatch in name of columns between dfs to concat'
+    
+    output = pd.concat([input_df, base_df])
+    if sort_cols is not None:
+        assert is_type(sort_cols, str), 'sort_cols must be string or a list of strings'
+        assert pd.Series(sort_cols).isin(base_df.columns).all(), 'Column/some columns in sort_cols not in inoutted df'
+        
+        output = output.sort_values(by=sort_cols, ascending=False)
+    
+    return output
+
+def academic_year_parser(input):
+    #private
+    if is_type(input, pd.Timestamp):
+        if input.month = 
+    if is_type(input, str):
+
+
 def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None):
+    # public function
     """
     Function checks the types of all entries in designated columns for the inputted dataframe.
     Checks if designated columns contain only the designated datatype or NaN values.
@@ -33,6 +72,7 @@ def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None)
         else: print(f"ERROR datetime columns do not have just datetime or NaN values")
 
 def row_test(cleaned_df, raw_df=None, num=None):
+    # public function
     """
     Checks to see if the #rows in the original dataframs is the same as the #rows in the cleaned dataframe.
     """
@@ -50,6 +90,7 @@ def row_test(cleaned_df, raw_df=None, num=None):
         else: print(f"ERROR number of columns inconsistent, supposed to be {num} but df actually has {cleaned_df.shape[0]} rows") 
 
 def col_test(cleaned_df, raw_df=None, num=None):
+    # public function
     """
     Checks to see if the columns in the original dataframs is the same as the columns in the cleaned dataframe and/or if they have the same number of columns
     """
@@ -65,6 +106,7 @@ def col_test(cleaned_df, raw_df=None, num=None):
         else: print(f"ERROR number of columns inconsistent, supposed to be {num} but df actually has {len(cleaned_df.columns)} columns") 
 
 def col_mismatch_test(df1, df2, print_matches=False, d1offset=0):
+    # public function
     """
     Takes in two dataframes with semi-sorted columns and checks if a the nth column in df1 is the same as the nth column in df2.
     If not then checks if a column of the same name is in df2 at all but just in a different spot
