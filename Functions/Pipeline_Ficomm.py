@@ -226,4 +226,4 @@ def Cont_Approval(input_txt):
 
 def Ficomm_Agenda_Pipe(inpt_agenda):
     df = Cont_Approval(inpt_agenda)
-    df['Year'] = np.full(len(df), academic_year_parser(df['Ficomm Meeting Date'][0]))
+    df['Year'] = academic_year_parser(df['Ficomm Meeting Date'])
