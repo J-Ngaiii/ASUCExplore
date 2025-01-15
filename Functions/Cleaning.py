@@ -23,7 +23,6 @@ def in_df(inpt, df):
     elif isinstance(inpt[0], int):
         return all(pd.Series(inpt) < len(df.columns))
 
-
 def concatonater(input_df, base_df, sort_cols=None):
     #private
     output = pd.concat([input_df, base_df])
@@ -37,21 +36,40 @@ def concatonater(input_df, base_df, sort_cols=None):
 
 def academic_year_parser(inpt):
     #private
-    if is_type(input, pd.Timestamp):
-        if inpt.month > 7:
-            return str(inpt.year) + "-" + str(inpt.year + 1)
-        elif inpt.month < 6:
-            return str(inpt.year - 1) + "-" + str(inpt.year)
+    def academic_year_helper(timestamp):
+        """Takes timestamp."""
+        if timestamp.month > 7:
+            return str(timestamp.year) + "-" + str(timestamp.year + 1)
+        elif timestamp.month < 6:
+            return str(timestamp.year - 1) + "-" + str(timestamp.year)
         else:
-            raise ValueError("inpt timestamp occurs during time frame beyond usual school year.")
-    elif is_type(input, str):
-        if inpt.month > 7:
-            return str(inpt.year) + "-" + str(inpt.year + 1)
-        elif inpt.month < 6:
-            return str(inpt.year - 1) + "-" + str(inpt.year)
+            raise ValueError("The input timestamp occurs in June or July, which are typically not part of a standard academic year.")
+        
+    def validate_and_parse(data):
+        """Validates and parses collections of timestamps."""
+        try:
+            timestamps = pd.Series(data).apply(pd.Timestamp)
+        except Exception:
+            raise ValueError("At least one input could not be converted to a valid timestamp.")
+        if not timestamps.apply(lambda x: hasattr(x, "month") and hasattr(x, "year")).all():
+            raise ValueError("At least one timestamp does not include both month and year attributes.")
+        return timestamps.apply(academic_year_helper)
+        
+    if isinstance(inpt, pd.Timestamp):
+        return academic_year_helper(inpt)
+    elif isinstance(inpt, str):
+        try:
+            inpt = pd.Timestamp(inpt)
+        except Exception as e:
+            raise ValueError('inpt could not be converted to valid timestamp')
+        if hasattr(inpt, "month") and hasattr(inpt, "year"):
+            return academic_year_helper(inpt)
         else:
-            raise ValueError("inpt timestamp occurs during time frame beyond usual school year.")
-
+            raise ValueError("The timestamp must include both month and year attributes.")
+    elif isinstance(inpt, (list, tuple, pd.Series)):
+        return validate_and_parse(inpt)
+    else:
+        raise ValueError("Input must be a string, pd.Timestamp, or a list, tuple, or pd.Series containing strings or pd.Timestamps.")
 
 def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None):
     # public function

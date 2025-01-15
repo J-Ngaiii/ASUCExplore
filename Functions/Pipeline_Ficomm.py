@@ -6,6 +6,8 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
+from .Cleaning import academic_year_parser
+
 def Cont_Approval_Helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
    Extracts and organizes data from a given agenda string, sorting it into a dictionary where:
@@ -14,7 +16,7 @@ def Cont_Approval_Helper(input, start=['Contingency Funding'], end=['Finance Rul
 
    The function searches for the specified start and end keywords to define the boundaries of the "Contingency Funding" section within the input agenda. It processes each section for clubs and their respective motions, and returns a structured dictionary containing the results.
 
-   Version 3.0: Changes for efficiency and handling clubs with no motions
+   Version 3.2: Changes with ficomm meeting date being pd.Timestamp object and denied applications having "0" for amount allocated.
    - Handling multiple conflicting motions (which shouldn't even happen) currently is done by prioritizing record rejections > temporary tabling > approvals > no input. Maybe we change this later down the line.
 
    Args:
@@ -200,7 +202,7 @@ def Cont_Approval_Dataframe(dict):
          try: 
             amt_list.append(int(dict[date][club]))
          except Exception as e: 
-            amt_list.append(-1)
+            amt_list.append(0) #NEW CHANGE: check that tabled and denied applications have 0 as amt allocated
    rv = pd.DataFrame({'Ficomm Meeting Date' : dates_list, 'Organization Name' : club_list, 'Ficomm Decision' : result_list, 'Amount Allocated' : amt_list})
    return rv
 
@@ -221,3 +223,7 @@ def Cont_Approval(input_txt):
       - It handles agenda sections related to contingency funding and applies custom start/end keyword filters if provided.
    """
    return Cont_Approval_Dataframe(Cont_Approval_Helper(input_txt))
+
+def Ficomm_Agenda_Pipe(inpt_agenda):
+    df = Cont_Approval(inpt_agenda)
+    df['Year'] = np.full(len(df), academic_year_parser(df['Ficomm Meeting Date'][0]))
