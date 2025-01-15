@@ -1,11 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
-import seaborn as sns
 import re
-import unittest
-import pytest
 import spacy
 nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
@@ -31,22 +26,31 @@ def in_df(inpt, df):
 
 def concatonater(input_df, base_df, sort_cols=None):
     #private
-    assert input_df.columns == base_df.columns, 'Mismatch in name of columns between dfs to concat'
-    
     output = pd.concat([input_df, base_df])
     if sort_cols is not None:
         assert is_type(sort_cols, str), 'sort_cols must be string or a list of strings'
-        assert pd.Series(sort_cols).isin(base_df.columns).all(), 'Column/some columns in sort_cols not in inoutted df'
+        assert in_df(list(sort_cols), base_df) or in_df(list(sort_cols), input_df), 'Column/some columns in sort_cols not in input_df or base_df.'
         
         output = output.sort_values(by=sort_cols, ascending=False)
     
     return output
 
-def academic_year_parser(input):
+def academic_year_parser(inpt):
     #private
     if is_type(input, pd.Timestamp):
-        if input.month = 
-    if is_type(input, str):
+        if inpt.month > 7:
+            return str(inpt.year) + "-" + str(inpt.year + 1)
+        elif inpt.month < 6:
+            return str(inpt.year - 1) + "-" + str(inpt.year)
+        else:
+            raise ValueError("inpt timestamp occurs during time frame beyond usual school year.")
+    elif is_type(input, str):
+        if inpt.month > 7:
+            return str(inpt.year) + "-" + str(inpt.year + 1)
+        elif inpt.month < 6:
+            return str(inpt.year - 1) + "-" + str(inpt.year)
+        else:
+            raise ValueError("inpt timestamp occurs during time frame beyond usual school year.")
 
 
 def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None):
