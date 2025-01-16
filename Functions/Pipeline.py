@@ -6,9 +6,10 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Utils import column_converter, column_renamer
+from .Utils import column_converter, column_renamer, oasis_cleaner
 from .Cleaning import is_type, in_df, concatonater, academic_year_parser
-from .Pipeline_OASIS import year_adder, heading_finder, year_rank_collision_handler
+from .Pipeline_OASIS import heading_finder, year_rank_collision_handler
+from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter
 
 
 
@@ -71,7 +72,32 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
     else: 
         return cleaned_df
 
-def Ficomm_Dataset_Processor(ficomm_agenda, FR_sheets, OASISMaster):
+def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, valid_cols=None):
     """
     Expected Intake: Df with following columns: 
     """
+    #phase 1: pre-processing
+    inpt_agenda = cont_approval(inpt_agenda) #process agenda
+    inpt_agenda['Year'] = academic_year_parser(inpt_agenda['Ficomm Meeting Date']) #add year column
+    inpt_OASIS['Organization Name'] = inpt_OASIS['Organization Name'].str.strip() #strip names
+    inpt_agenda['Organization Name'] = inpt_agenda['Organization Name'].str.strip()
+    inpt_OASIS = oasis_cleaner(inpt_OASIS, True, list(inpt_agenda['Year'].unique()))
+
+    #phase 2: matching and cleaning
+    df = pd.merge(inpt_OASIS, inpt_agenda, on=['Organization Name', 'Year'], how='right') #initial match
+
+    if valid_cols is None: #column cleaning
+        #standard settings is to use the standard column layout
+        standard_ficomm_layout = ['Org ID', 'Organization Name',	'Org Type',	'Callink Page',	'OASIS RSO Designation', 'OASIS Center Advisor', 'Year', 'Year Rank', 'Active', 'Ficomm Meeting Date', 'Ficomm Decision', 'Amount Allocated']
+        assert in_df(standard_ficomm_layout), "Standard columns not detected in DF"
+        df = df[standard_ficomm_layout]
+    else: 
+        assert is_type(valid_cols, str)
+        assert in_df(valid_cols), "Inputted columns for arg 'valid_cols' not detected in DF"
+        df = df[valid_cols]
+
+    if close_matching:
+        rez, fuzz_failed_match = close_match_sower(df, inpt_OASIS, 'Organization Name', 'Org Type', 87.9,  sa_filter) #optimal settings based on empirical testing
+        print(f"""Failed Matches: 
+              {fuzz_failed_match}""")
+        

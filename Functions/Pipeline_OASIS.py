@@ -44,3 +44,5 @@ def year_rank_collision_handler(df, existing):
     existing_cop['Year Rank'] = existing_cop['Year'].map(years_to_rank)
 
     return df_cop, existing_cop
+
+

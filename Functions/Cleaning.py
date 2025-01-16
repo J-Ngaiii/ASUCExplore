@@ -7,12 +7,20 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rapidfuzz import fuzz, process
 
 def is_type(inpt, t):
+    """inpt is either a single value or iterable containing values. 
+    t is either a single type of a iterable containing valid types."""
     # private function
-    return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
+    def is_type_helper(inpt, t):
+        return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
+    
+    if isinstance(t, (tuple, list, pd.Series)):
+        return all(is_type_helper(inpt, type)for type in t)
+    else:
+        return is_type_helper(inpt, t)
 
 def in_df(inpt, df):
     #private function
-    assert is_type(inpt, str) or is_type(inpt, int), 'inpt must be string, int or list of strings or ints.'
+    assert is_type(inpt, (str, int)), 'inpt must be string, int or tuple, list or pd.Series of strings or ints.'
     if isinstance(inpt, str): 
         return inpt in df.columns
     elif isinstance(inpt, int):
@@ -22,6 +30,16 @@ def in_df(inpt, df):
         return pd.Series(inpt).isin(df.columns).all()
     elif isinstance(inpt[0], int):
         return all(pd.Series(inpt) < len(df.columns))
+    
+def any_in_df(inpt, df):
+    #private function
+    """Function does not handle ints because you would not need to check if some cols are or are not in df based on index, just use df.shape"""
+    assert is_type(inpt, str), 'inpt must be string or tuple, list or pd.Series of strings.'
+    if isinstance(inpt, str): 
+        return inpt in df.columns
+    else:
+        return any(df.columns.isin(inpt))
+    
 
 def concatonater(input_df, base_df, sort_cols=None):
     #private

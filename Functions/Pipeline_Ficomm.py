@@ -8,7 +8,7 @@ from rapidfuzz import fuzz, process
 
 from .Cleaning import academic_year_parser
 
-def Cont_Approval_Helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
+def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
    Extracts and organizes data from a given agenda string, sorting it into a dictionary where:
    - Keys are the meeting dates.
@@ -173,9 +173,9 @@ def Cont_Approval_Helper(input, start=['Contingency Funding'], end=['Finance Rul
          
    return Dates_Dict
 
-def Cont_Approval_Dataframe(dict):
+def cont_approval_dataframe(dict):
    """
-   Converts the nested dictionary produced by `Cont_Approval_Helper` into a Pandas DataFrame.
+   Converts the nested dictionary produced by `cont_approval_helper` into a Pandas DataFrame.
 
    This DataFrame organizes the extracted agenda data, with columns for meeting dates, club names, Ficomm decisions, and allocated amounts (if applicable).
 
@@ -187,7 +187,7 @@ def Cont_Approval_Dataframe(dict):
    
    Notes:
       - The `Amount Allocated` column will contain the parsed dollar amount if available; otherwise, it will be set to `-1` if the value is not a number.
-      - This function is designed to work with the dictionary structure returned by `Cont_Approval_Helper`.
+      - This function is designed to work with the dictionary structure returned by `cont_approval_helper`.
    """
    
    dates_list = []
@@ -206,11 +206,11 @@ def Cont_Approval_Dataframe(dict):
    rv = pd.DataFrame({'Ficomm Meeting Date' : dates_list, 'Organization Name' : club_list, 'Ficomm Decision' : result_list, 'Amount Allocated' : amt_list})
    return rv
 
-def Cont_Approval(input_txt):
+def cont_approval(input_txt):
    """
    Processes a raw agenda string and converts it into a Pandas DataFrame with club funding decisions.
 
-   This function combines `Cont_Approval_Helper` for extracting the data and `Cont_Approval_Dataframe` to format it into a DataFrame for easier analysis.
+   This function combines `cont_approval_helper` for extracting the data and `cont_approval_dataframe` to format it into a DataFrame for easier analysis.
 
    Args:
       input_txt (str): The raw text of the Ficomm agenda to be processed.
@@ -222,8 +222,119 @@ def Cont_Approval(input_txt):
       - This function provides an easy interface for extracting and formatting agenda data into a DataFrame.
       - It handles agenda sections related to contingency funding and applies custom start/end keyword filters if provided.
    """
-   return Cont_Approval_Dataframe(Cont_Approval_Helper(input_txt))
+   return cont_approval_dataframe(cont_approval_helper(input_txt))
 
-def Ficomm_Agenda_Pipe(inpt_agenda):
-    df = Cont_Approval(inpt_agenda)
-    df['Year'] = academic_year_parser(df['Ficomm Meeting Date'])
+def sa_filter(entry):
+        """
+        Splits the entry into two parts (before and after "Student Association") for fuzzy matching,
+        while retaining the full name for the final output.
+        
+        Parameters:
+        - entry (str): The original club name to be processed.
+        
+        Returns:
+        - tuple: (filtered_name, full_name, filter_applied)
+        - If there is no relevant filtered name (ie filtered was not applied), filtered_name is False
+
+        Version 1.0
+        - Maybe make it regex to handle names like 'Student Association of Data Science' cuz then it extracts 'of data science' and lower cases it
+        """
+        parts = entry.lower().split("student association")
+        filter_applied = False
+        if len(parts) > 1:
+            before = parts[0].strip()  # Text before "Student Association"
+            after = parts[1].strip()  # Text after "Student Association"
+            # Concatenate the simplified name for matching (without "Student Association")
+            filtered_name = before + " " + after
+            filter_applied = True
+        else:
+            filtered_name = entry  # No "Student Association", use the full name for matching
+        
+        return entry, filtered_name, filter_applied
+
+def close_match_sower(df1, df2, matching_col, mismatch_col, fuzz_threshold, filter = None, nlp_processing = False, nlp_process_threshold = None, nlp_threshold = None):
+    """
+    Matches rows in df1 to df2 based on fuzzy matching and optional NLP embedding similarity.
+
+    Parameters:
+    - df1 (pd.DataFrame): Primary dataframe with unmatched entries. Has already been merged once and has some NaN rows. 
+    - df2 (pd.DataFrame): Secondary dataframe with potential matches.
+    - matching_col (str): Column for matching on in both dataframes (e.g., "Organization Name").
+    - mismatch_col (str): Column in df1 that shows up as NaN for unmatched rows (e.g., "Amount Allocated").
+    - filter (func): Takes in a filtering function to be applied to individual club names. NOTE the function MUST return 3 outputs for name, processing_name, filt_applied respectively. 
+    - fuzz_threshold (int): EXCLUSIVE Minimum score for accepting a fuzzy match (0-100).
+    - nlp_processing (bool): Toggle NLP-based matching; default is False.
+    - nlp_process_threshold (float, optional): EXCLUSIVE Minimum fuzzy score to attempt NLP-based matching.
+    - nlp_threshold (float, optional): EXCLUSIVE Minimum cosine similarity score for accepting an NLP match.
+
+    Returns:
+    - pd.DataFrame: Updated dataframe with new matches filled from df2.
+    - list: List of tuples containing unmatched entries with reasons.
+
+    Version 2.2
+    - Maybe also make sure filter is applied to df2[matching_col] cuz if we apply the filter to the names we're tryna match they should also be applied to the name list we're matching against
+    otherwise you're obviously gonna have a hard time matching things like Pakistani to Pakistani Student Assoication. 
+    Oh actually this is a catch 22, if you have a Pakistani Student Association and a Pakastani Engineers Association you might not want to filter out "Student Association"
+    But if you have "Pakistani Student Association" vs "Kazakstani Student Association" then you do need a filter. 
+
+    Changelog:
+    - Made nlp processing toggleable for more precise testing (ver 2.2)
+    - Added `nlp_process_threshold` to minimize unnecessary NLP comparisons. (ver 2.1)
+    - Improved efficiency by applying the NLP model only to rows with scores below `fuzz_threshold`. (ver 2.0)
+    - Enhanced error handling for unmatched cases. (ver 1.1)
+    """
+    
+    assert isinstance(fuzz_threshold, (float, int)), "fuzz_threshold must be an integer."
+    if nlp_processing:
+        assert isinstance(nlp_process_threshold, (float, int)), "nlp_process_threshold must be a float or int."
+        assert isinstance(nlp_threshold, (float, int)), "nlp_threshold must be a float or int."
+    
+    #isolate entries without a match
+    NaN_types = df1[df1[mismatch_col].isna()]
+    copy = df1.copy()
+    
+    #iterate through all entries without a match, searching through df2, identifying closest match, then matching closest match from df2 onto df1
+    could_not_match = []
+    
+    for ind in NaN_types.index:
+        if filter is not None:
+            name, processing_name, filt_applied = filter(NaN_types.loc[ind, matching_col])
+            if filt_applied:
+                filt_msg = f'Filter applied to processing name {processing_name}'                   
+            else: 
+                filt_msg = 'Filter not applied'
+        else: 
+            name = NaN_types.loc[ind, matching_col]
+            processing_name = name
+            filt_applied = False
+            filt_msg = 'No filter inputted'
+
+        match, score, index = process.extractOne(processing_name, df2[matching_col].tolist())
+
+        if score > fuzz_threshold:
+            for col in df2.columns: #ensures all info from the relevant row in copy is overwrited with the corresponding info from df2s
+                copy.loc[ind, col] = df2.iloc[index][col]
+        elif nlp_processing:             
+            if score > nlp_process_threshold:
+                    
+                    embed = df2[matching_col].apply(nlp_model) #indexes of df2 --> indexes of embed object array for each name
+
+                    name_to_check = np.array([nlp_model(processing_name).vector])
+                    embeddings = np.stack(embed.apply(lambda x: x.vector)) #indexes of embed object array --> name vectors array
+                    similarities = cosine_similarity(name_to_check, embeddings)
+                    best_match_index = similarities.argmax()
+                    best_score = similarities[0, best_match_index]
+                    
+                    if best_score * 100 > nlp_threshold: #cosine_similarity spits out a score from 0 to 1 while nlp_thershold goes from 0 to 100 so it needs to be scaled
+                        for col in df2.columns:
+                            copy.loc[ind, col] = df2.iloc[best_match_index][col]
+
+                    else: 
+                        could_not_match.append( (name, filt_msg, f'closest match: {df2[matching_col].iloc[best_match_index]}', 'nlp elimination', best_score * 100) )
+            else: 
+                could_not_match.append( (name, filt_msg, f'closest match: {match}', 'fuzz elimination', score) )
+        else: 
+            could_not_match.append( (name, filt_msg, f'closest match: {match}', 'fuzz elimination', score) )
+    
+    return copy, could_not_match
+    
