@@ -6,7 +6,7 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Cleaning import academic_year_parser
+from .Cleaning import in_df, is_type
 
 def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
@@ -196,7 +196,7 @@ def cont_approval_dataframe(dict):
    amt_list = []
    for date in dict:
       for club in dict[date]:
-         dates_list.append(date)
+         dates_list.append(pd.Timestamp(date))
          club_list.append(club)
          result_list.append(dict[date][club])
          try: 
@@ -338,3 +338,35 @@ def close_match_sower(df1, df2, matching_col, mismatch_col, fuzz_threshold, filt
     
     return copy, could_not_match
     
+def asuc_processor(df):
+    """Checks for any ASUC orgs in a df and upadtes those entries with the 'ASUC' label.
+    Developed cuz ASUC orgs aren't on OASIS so whenever they apply for ficomm funds and their names show up, it shows up as "NA" club type. """
+    def asuc_processor_helper(org_name):
+        asuc_exec = set(['executive vice president', 'office of the president', 'academic affairs vice president', 'external affairs vice president', 'student advocate']) #executive vice president is unique enough, just president is not
+        asuc_chartered = set(['grants and scholarships foundation', 'innovative design', 'superb']) #incomplete: address handling extra characters (eg. grants vs grant)
+        asuc_commission = set(['mental health commision', 'disabled students commission', 'sustainability commission', 'sexual violence commission']) #incomplete
+        asuc_appointed = set(['chief finance officer', 'chief communications officer', 'chief legal officer', 'chief personel officer', 'chief technology officer']) 
+        if org_name.lower().contains('senator') and org_name.lower().contains('asuc'):
+            return 'ASUC: Senator'
+        elif org_name.lower() in asuc_exec and org_name.lower().contains('asuc'):
+            return 'ASUC: Executive'
+        elif org_name.lower() in asuc_commission and org_name.lower().contains('asuc'):
+            return 'ASUC: Commission'
+        elif org_name.lower() in asuc_chartered: # I'm not sure if chartered programs put 'ASUC' in their shit?
+            return 'ASUC: Chartered Program'
+        elif org_name.lower() in asuc_appointed and org_name.lower().contains('asuc'):
+            return 'ASUC: Appointed Office'
+        else:
+            return org_name
+        
+    
+    assert in_df(['Organization Name', 'OASIS RSO Designation']), '"Organization Name" and/or "OASIS RSO Designation" not present in inputted df.'
+    assert is_type(df['Organization Name'], str), "Column 'Organization Name' exists in inputted def but doesn't contain datatype string objects"
+    assert is_type(df['OASIS RSO Designation'], str), "Column 'OASIS RSO Designation' exists in inputted def but doesn't contain datatype string objects"
+    
+    cleaned = df.copy()
+
+    cleaned['OASIS RSO Designation'] = cleaned['Organization Name'].apply(asuc_processor_helper)
+    cleaned['ASUC'] = cleaned['OASIS RSO Designation'].apply(lambda x: 1 if x.contains('ASUC') else 0)
+
+    return cleaned

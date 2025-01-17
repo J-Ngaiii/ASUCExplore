@@ -9,10 +9,7 @@ from rapidfuzz import fuzz, process
 from .Utils import column_converter, column_renamer, oasis_cleaner
 from .Cleaning import is_type, in_df, concatonater, academic_year_parser
 from .Pipeline_OASIS import heading_finder, year_rank_collision_handler
-from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter
-
-
-
+from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
 
 def SU_Cont_Processor(df):
     """
@@ -28,6 +25,7 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
        'Callink Page', 'OASIS RSO Designation', 'OASIS Center Advisor ',
        'Year', 'Year Rank']
     - existing_df: already cleaned version of OASIS dataset
+    - col_types: a dictionary mapping data types to column names, thus assigning certain/validating columns to have certain types
 
     - year is to be a tuple containing the string description of the academic year and the year rank in a tuple 
 
@@ -40,7 +38,7 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
     else: 
         cleaned_df = column_renamer(cleaned_df, rename)
 
-    cleaned_df['Year'] = year[0] #phase 3
+    cleaned_df['Year'] = year[0] #phase 3: there is no info on the df that allows us to parse academic year
     cleaned_df['Year Rank'] = year[1]
     
     if col_types is None: #phase 4
@@ -50,7 +48,7 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
         column_converter(cleaned_df, OClean_Int_Cols, int)
         column_converter(cleaned_df, OClean_Str_Cols, str)
     else:
-        #expecting col_types to be a dictionary mapping type to column names
+        #expecting col_types to be 
         for key in col_types.keys(): 
             column_converter(cleaned_df, col_types[key], key)
     
@@ -58,23 +56,26 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
 
     cleaned_df['OASIS RSO Designation'] = cleaned_df['OASIS RSO Designation'].str.extract(r'[LEAD|OASIS] Center Category: (.*)') #phase 6
     
-    if existing is not None:
+    if existing is not None: #phase 7(O): concating onto an existing OASIS dataset
         assert in_df(
             ['Org ID', 'Organization Name', 'Reg Steps Complete',
        'Reg Form Progress', 'Num Signatories', 'Completed T&C', 'Org Type',
        'Callink Page', 'OASIS RSO Designation', 'OASIS Center Advisor', 'Year',
        'Year Rank', 'Orientation Attendees', 'Spring Re-Reg. Eligibility',
        'Active']
-            , existing) #consider functionality for telling which columns are not in df
+            , existing), "Columns expected to be in cleaned 'existing' df non-existent."
         cleaned_df, existing = year_rank_collision_handler(cleaned_df, existing)
         cleaned_df = concatonater(cleaned_df, existing, ['Year Rank', 'Organization Name'])
         return cleaned_df
     else: 
         return cleaned_df
 
-def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, valid_cols=None):
+def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, custom_close_match_settings=None, valid_cols=None):
     """
     Expected Intake: Df with following columns: 
+
+     - custom_close_match_settings: iterable that unpacks into arg values for close_match_sower
+        - Args to fill: matching_col, mismatch_col, fuzz_threshold, filter, nlp_processing, nlp_process_threshold, nlp_threshold
     """
     #phase 1: pre-processing
     inpt_agenda = cont_approval(inpt_agenda) #process agenda
@@ -83,10 +84,11 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
     inpt_agenda['Organization Name'] = inpt_agenda['Organization Name'].str.strip()
     inpt_OASIS = oasis_cleaner(inpt_OASIS, True, list(inpt_agenda['Year'].unique()))
 
-    #phase 2: matching and cleaning
+    #phase 2: Initial matching
     df = pd.merge(inpt_OASIS, inpt_agenda, on=['Organization Name', 'Year'], how='right') #initial match
 
-    if valid_cols is None: #column cleaning
+    #phase 3: cleaning columns
+    if valid_cols is None: 
         #standard settings is to use the standard column layout
         standard_ficomm_layout = ['Org ID', 'Organization Name',	'Org Type',	'Callink Page',	'OASIS RSO Designation', 'OASIS Center Advisor', 'Year', 'Year Rank', 'Active', 'Ficomm Meeting Date', 'Ficomm Decision', 'Amount Allocated']
         assert in_df(standard_ficomm_layout), "Standard columns not detected in DF"
@@ -96,8 +98,26 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
         assert in_df(valid_cols), "Inputted columns for arg 'valid_cols' not detected in DF"
         df = df[valid_cols]
 
+    #phase 4(O): apply fuzzywuzzy/nlp name matcher for names that are slightly mispelled
     if close_matching:
-        rez, fuzz_failed_match = close_match_sower(df, inpt_OASIS, 'Organization Name', 'Org Type', 87.9,  sa_filter) #optimal settings based on empirical testing
-        print(f"""Failed Matches: 
-              {fuzz_failed_match}""")
-        
+        if custom_close_match_settings is None:
+            assert in_df(['Organization Name', 'OASIS RSO Designation'], inpt_OASIS)
+
+            updated_df, _ = close_match_sower(df, inpt_OASIS, 'Organization Name', 'OASIS RSO Designation', 87.9,  sa_filter) #optimal settings based on empirical testing
+            updated_df = asuc_processor(updated_df)
+            failed_match = updated_df[updated_df['OASIS RSO Designation'].isna()]['Organization Name']
+            print(f"Note some club names were not recognized: {failed_match}")
+        else: 
+            updated_df, _ = close_match_sower(df, inpt_OASIS, *custom_close_match_settings) #optimal settings based on empirical testing
+            updated_df = asuc_processor(updated_df)
+            failed_match = updated_df[updated_df['OASIS RSO Designation'].isna()]['Organization Name']
+            print(f"Note some club names were not recognized: {failed_match}")
+    
+    #phase 5: meeting number
+    Ficomm23234_meeting_number = {updated_df['Ficomm Meeting Date'].unique()[i] : i + 1 for i in range(len(updated_df['Ficomm Meeting Date'].unique()))}
+    updated_df['Meeting Number'] = updated_df['Ficomm Meeting Date'].map(Ficomm23234_meeting_number)
+
+    #phase 6: approved only df
+    approved = updated_df[updated_df['Amount Allocated'] > 0]
+    
+    return approved, updated_df

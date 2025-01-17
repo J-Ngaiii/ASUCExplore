@@ -29,7 +29,8 @@ def heading_finder(df, col, inpt):
     raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
 
 def year_rank_collision_handler(df, existing):
-    """For re-adjusting year rank via comparing academic year columns that have values formatted "2023-2024"."""
+    """For re-adjusting year rank via comparing academic year columns that have values formatted "2023-2024".
+    Just remaps the Year and Year Rank columns, can handle extra columns."""
     assert in_df(['Year', 'Year Rank'], df), 'Year and Year Rank not in df.'
     assert in_df(['Year', 'Year Rank'], existing), 'Year and Year Rank not in existing.'
     df_cop = df.copy()

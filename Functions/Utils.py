@@ -45,7 +45,8 @@ def column_converter(df, cols, t, datetime_element_looping = False):
             print(f"Error converting {cols} to {t}: {e}")
 
 def column_renamer(df, rename):
-        """Column Renaming Unit is for renaiming columns or a df, with custom modes according to certain raw ASUC datasets files expected."""
+        """Column Renaming Unit is for renaiming columns or a df, with custom modes according to certain raw ASUC datasets files expected.
+        Can handle extra columns. they just don't get renamed if they aren't explicitly named in the 'renamed' arg."""
         cleaned_df = df.copy()
         cols = cleaned_df.columns
 
