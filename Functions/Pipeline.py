@@ -10,6 +10,7 @@ from .Utils import column_converter, column_renamer, oasis_cleaner
 from .Cleaning import is_type, in_df, concatonater, academic_year_parser
 from .Pipeline_OASIS import heading_finder, year_rank_collision_handler
 from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
+from .Pipeline_FR import FR_Processor
 
 def SU_Cont_Processor(df):
     """
@@ -119,5 +120,8 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
 
     #phase 6: approved only df
     approved = updated_df[updated_df['Amount Allocated'] > 0]
+
+    #phase 7: FR processing
+    # FR_Processor
     
     return approved, updated_df
