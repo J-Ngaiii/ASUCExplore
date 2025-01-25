@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 
-def FY_Rez_Generator(path, Alphabet_List, appx=True):
+def FY_Rez_Generator(df, Alphabet_List, appx=True):
 
-    FR_Sheet_RAW = pd.read_csv(path)
+    FR_Sheet_RAW = df.copy()
     first_col = FR_Sheet_RAW.columns[0]
     FR_Sheet_RAW[first_col] = FR_Sheet_RAW[first_col].apply(lambda x: 'NaN' if pd.isna(x) else x)
 
@@ -23,4 +23,16 @@ def FY_Rez_Generator(path, Alphabet_List, appx=True):
     Sheet = Sheet.rename(columns=col_mapper)
     
     return Sheet
+
+def FR_Processor(df):
+    
+    FY24_Alphabet = 'A B C D E F G H I J K L M N O P Q R S T U V W X Y Z'.split()
+    FY24_Alphabet.extend(
+        'AA AB AC AD AE AF AG AH AI AJ AK AL AM AN AO AP AQ AR AS AT AU AV AW AX AY AZ'.split()
+    )
+    FY24_Alphabet.extend(
+        'BB CC DD EE FF GG HH II JJ KK LL MM NN OO PP QQ RR SS TT UU VV WW XX YY ZZ'.split()
+    )
+    
+    return FY_Rez_Generator(df, FY24_Alphabet)
     

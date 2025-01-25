@@ -2,17 +2,21 @@ import numpy as np
 import pandas as pd
 import re
 
-def is_type(inpt, t):
-    """inpt is either a single value or iterable containing values. 
-    t is either a single type of a iterable containing valid types."""
+def _check_type(inpt, t):
     # private function
-    def is_type_helper(inpt, t):
+    def _is_type_helper(inpt, t):
         return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
     
     if isinstance(t, (tuple, list, pd.Series)):
-        return all(is_type_helper(inpt, type)for type in t)
+        return all(_is_type_helper(inpt, type) for type in t)
     else:
-        return is_type_helper(inpt, t)
+        return _is_type_helper(inpt, t)
+    
+def is_type(inpt, t):
+    """inpt is either a single value or iterable containing values. 
+    t is either a single type of a iterable containing valid types."""
+    return _check_type(inpt, t)
+    
 
 def in_df(inpt, df):
     #private function
