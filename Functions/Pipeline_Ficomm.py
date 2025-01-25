@@ -8,7 +8,7 @@ from rapidfuzz import fuzz, process
 
 from .Cleaning import in_df, is_type
 
-def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
+def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
    Extracts and organizes data from a given agenda string, sorting it into a dictionary where:
    - Keys are the meeting dates.
@@ -37,7 +37,7 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
       - This function is designed for agendas in a specific format and may not work for other types of input.
    """
    
-   def cont_appender_helper(pattern, start_list, end_list):
+   def _cont_appender_helper(pattern, start_list, end_list):
       """
       Constructs a regular expression pattern to extract text between specified start and end keywords.
 
@@ -61,7 +61,7 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
          - The returned pattern can be used to capture multiple sections if they occur in the input text. It is specifically designed for processing Ficomm agenda formats but could be adapted for other purposes.
       
       Example:
-         >>> cont_appender_helper(pattern, ['Contingency Funding', 'Space Reservation'], ['Sponsorship', 'Rule Waiver'])
+         >>> _cont_appender_helper(pattern, ['Contingency Funding', 'Space Reservation'], ['Sponsorship', 'Rule Waiver'])
          Appender will return a regex pattern that when fed into an extraction function like re.findall returns all text that comes
          after the first appearance of 'Contingency Funding' or 'Space Reservation' and before the first appearance of 'Sponsorship' or 'Rule Waiver'
       """
@@ -70,9 +70,9 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
       #example output: '{d}[\s\S]*?(Contingency Funding[\s\S]*?(?=(?:Finance Rule|Space Reservation|Sponsorship|$)))'
       
       if (type(start_list) is not list):
-         raise Exception('cont_appender_helper start_list argument is not list')
+         raise Exception('_cont_appender_helper start_list argument is not list')
       elif len(start_list) == 0:
-         raise Exception('cont_appender_helper start_list argument is empty')
+         raise Exception('_cont_appender_helper start_list argument is empty')
       elif len(start_list) == 1:
           pattern += start_list[0]
       else: 
@@ -83,9 +83,9 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
       pattern += '[\s\S]*?(?=(?:'
 
       if (type(end_list) is not list):
-         raise Exception('cont_appender_helper end_list argument is not list')
+         raise Exception('_cont_appender_helper end_list argument is not list')
       elif len(end_list) == 0:
-         raise Exception('cont_appender_helper end_list argument is empty')
+         raise Exception('_cont_appender_helper end_list argument is empty')
       elif len(end_list) == 1:
          pattern += end_list[0]
       else: 
@@ -111,7 +111,7 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
    for d in Dates:
       Dates_Dict[d] = None
       initial_pattern = f'{d}[\s\S]*?('
-      final_pattern = cont_appender_helper(initial_pattern, start, end)
+      final_pattern = _cont_appender_helper(initial_pattern, start, end)
       match = re.findall(rf'{final_pattern}', input)
 
       #if we get a chunk of contingency apps under this meeting date
@@ -173,9 +173,9 @@ def cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rul
          
    return Dates_Dict
 
-def cont_approval_dataframe(dict):
+def _cont_approval_dataframe(dict):
    """
-   Converts the nested dictionary produced by `cont_approval_helper` into a Pandas DataFrame.
+   Converts the nested dictionary produced by `_cont_approval_helper` into a Pandas DataFrame.
 
    This DataFrame organizes the extracted agenda data, with columns for meeting dates, club names, Ficomm decisions, and allocated amounts (if applicable).
 
@@ -187,7 +187,7 @@ def cont_approval_dataframe(dict):
    
    Notes:
       - The `Amount Allocated` column will contain the parsed dollar amount if available; otherwise, it will be set to `-1` if the value is not a number.
-      - This function is designed to work with the dictionary structure returned by `cont_approval_helper`.
+      - This function is designed to work with the dictionary structure returned by `_cont_approval_helper`.
    """
    
    dates_list = []
@@ -210,7 +210,7 @@ def cont_approval(input_txt):
    """
    Processes a raw agenda string and converts it into a Pandas DataFrame with club funding decisions.
 
-   This function combines `cont_approval_helper` for extracting the data and `cont_approval_dataframe` to format it into a DataFrame for easier analysis.
+   This function combines `_cont_approval_helper` for extracting the data and `_cont_approval_dataframe` to format it into a DataFrame for easier analysis.
 
    Args:
       input_txt (str): The raw text of the Ficomm agenda to be processed.
@@ -222,7 +222,7 @@ def cont_approval(input_txt):
       - This function provides an easy interface for extracting and formatting agenda data into a DataFrame.
       - It handles agenda sections related to contingency funding and applies custom start/end keyword filters if provided.
    """
-   return cont_approval_dataframe(cont_approval_helper(input_txt))
+   return _cont_approval_dataframe(_cont_approval_helper(input_txt))
 
 def sa_filter(entry):
         """
