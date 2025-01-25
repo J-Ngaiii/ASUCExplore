@@ -2,23 +2,25 @@ import numpy as np
 import pandas as pd
 import re
 
-def _check_type(inpt, t):
+def _is_type(inpt, t):
     # private function
+    """Checks if input is type t. 
+    Can handle iterable specifying multiple types to check against for t, in which case function checks if inpt/elems in inpt belongs to at least one type in t."""
     def _is_type_helper(inpt, t):
+        """Checks if input is of type t or (if an iterable) if all elems of input are of type t"""
         return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
     
     if isinstance(t, (tuple, list, pd.Series)):
-        return all(_is_type_helper(inpt, type) for type in t)
+        return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
         return _is_type_helper(inpt, t)
     
 def is_type(inpt, t):
     """inpt is either a single value or iterable containing values. 
     t is either a single type of a iterable containing valid types."""
-    return _check_type(inpt, t)
+    return _is_type(inpt, t)
     
-
-def in_df(inpt, df):
+def _in_df(inpt, df):
     #private function
     assert is_type(inpt, (str, int)), 'inpt must be string, int or tuple, list or pd.Series of strings or ints.'
     if isinstance(inpt, str): 
@@ -30,8 +32,12 @@ def in_df(inpt, df):
         return pd.Series(inpt).isin(df.columns).all()
     elif isinstance(inpt[0], int):
         return all(pd.Series(inpt) < len(df.columns))
+
+
+def in_df(inpt, df):
+    return _in_df(inpt, df)
     
-def any_in_df(inpt, df):
+def _any_in_df(inpt, df):
     #private function
     """Function does not handle ints because you would not need to check if some cols are or are not in df based on index, just use df.shape"""
     assert is_type(inpt, str), 'inpt must be string or tuple, list or pd.Series of strings.'
@@ -40,8 +46,10 @@ def any_in_df(inpt, df):
     else:
         return any(df.columns.isin(inpt))
     
-
-def concatonater(input_df, base_df, sort_cols=None):
+def any_in_df(inpt, df):
+    return _any_in_df(inpt, df)
+    
+def _concatonater(input_df, base_df, sort_cols=None):
     #private
     output = pd.concat([input_df, base_df])
     if sort_cols is not None:
@@ -52,7 +60,10 @@ def concatonater(input_df, base_df, sort_cols=None):
     
     return output
 
-def academic_year_parser(inpt):
+def concatonater(input_df, base_df, sort_cols=None):
+    return _concatonater(input_df, base_df, sort_cols)
+
+def _academic_year_parser(inpt):
     #private
     def academic_year_helper(timestamp):
         """Takes timestamp."""
@@ -88,6 +99,9 @@ def academic_year_parser(inpt):
         return validate_and_parse(inpt)
     else:
         raise ValueError("Input must be a string, pd.Timestamp, or a list, tuple, or pd.Series containing strings or pd.Timestamps.")
+    
+def academic_year_parser(inpt):
+    return _academic_year_parser(inpt)
 
 def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None):
     # public function
