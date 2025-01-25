@@ -3,7 +3,7 @@ import pandas as pd
 
 from .Cleaning import in_df
 
-def year_adder(df_list, year_list, year_rank):
+def _year_adder(df_list, year_list, year_rank):
         #private
         """
         Takes a list of dataframes and a corresponding list of years, 
@@ -14,19 +14,8 @@ def year_adder(df_list, year_list, year_rank):
             df_list[i]['Year'] = np.full(df_list[i].shape[0], year_list[i])
             df_list[i]['Year Rank'] = np.full(df_list[i].shape[0], year_rank[i])
 
-def heading_finder(df, col, inpt):
-    """If a input's header is moved down a couple rows, checks for the where the correct header is and adjusts the dataframe to start at the right header."""
-    assert isinstance(col, str) or isinstance(col, int), 'col must be index of column or name of column.'
-    assert in_df(col, df), 'Given col is not in the given df.'
-    if isinstance(col, str):
-        col_index = df.columns.get_loc(col)
-    else:
-        col_index = col
-    for i in range(len(df)):
-        curr_entry = df.iloc[i,col_index].strip()
-        if curr_entry == inpt:
-            return df.iloc[i:,:]
-    raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
+def year_adder(df_list, year_list, year_rank):
+    return _year_adder(df_list, year_list, year_rank)
 
 def year_rank_collision_handler(df, existing):
     """For re-adjusting year rank via comparing academic year columns that have values formatted "2023-2024".

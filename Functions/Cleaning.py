@@ -2,15 +2,20 @@ import numpy as np
 import pandas as pd
 import re
 
+_valid_iterables = (list, tuple, pd.Series, np.array)
+
+def get_valid_iter():
+    return _valid_iterables
+
 def _is_type(inpt, t):
     # private function
     """Checks if input is type t. 
     Can handle iterable specifying multiple types to check against for t, in which case function checks if inpt/elems in inpt belongs to at least one type in t."""
     def _is_type_helper(inpt, t):
         """Checks if input is of type t or (if an iterable) if all elems of input are of type t"""
-        return isinstance(inpt, t) or (isinstance(inpt, (list, tuple, pd.Series)) and all(isinstance(x, t) for x in inpt))
+        return isinstance(inpt, t) or (isinstance(inpt, get_valid_iter()) and all(isinstance(x, t) for x in inpt))
     
-    if isinstance(t, (tuple, list, pd.Series)):
+    if isinstance(t, (tuple, list, pd.Series, np.array)):
         return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
         return _is_type_helper(inpt, t)
@@ -65,8 +70,8 @@ def concatonater(input_df, base_df, sort_cols=None):
 
 def _academic_year_parser(inpt):
     #private
-    def academic_year_helper(timestamp):
-        """Takes timestamp."""
+    def _academic_year_helper(timestamp):
+        """Takes timestamp and returns academic year"""
         if timestamp.month > 7:
             return str(timestamp.year) + "-" + str(timestamp.year + 1)
         elif timestamp.month < 6:
@@ -74,7 +79,7 @@ def _academic_year_parser(inpt):
         else:
             raise ValueError("The input timestamp occurs in June or July, which are typically not part of a standard academic year.")
         
-    def validate_and_parse(data):
+    def _validate_and_parse(data):
         """Validates and parses collections of timestamps."""
         try:
             timestamps = pd.Series(data).apply(pd.Timestamp)
@@ -82,26 +87,62 @@ def _academic_year_parser(inpt):
             raise ValueError("At least one input could not be converted to a valid timestamp.")
         if not timestamps.apply(lambda x: hasattr(x, "month") and hasattr(x, "year")).all():
             raise ValueError("At least one timestamp does not include both month and year attributes.")
-        return timestamps.apply(academic_year_helper)
+        return timestamps.apply(_academic_year_helper)
         
     if isinstance(inpt, pd.Timestamp):
-        return academic_year_helper(inpt)
+        return _academic_year_helper(inpt)
     elif isinstance(inpt, str):
         try:
             inpt = pd.Timestamp(inpt)
         except Exception as e:
             raise ValueError('inpt could not be converted to valid timestamp')
         if hasattr(inpt, "month") and hasattr(inpt, "year"):
-            return academic_year_helper(inpt)
+            return _academic_year_helper(inpt)
         else:
             raise ValueError("The timestamp must include both month and year attributes.")
-    elif isinstance(inpt, (list, tuple, pd.Series)):
-        return validate_and_parse(inpt)
+    elif isinstance(inpt, get_valid_iter()):
+        return _validate_and_parse(inpt)
     else:
         raise ValueError("Input must be a string, pd.Timestamp, or a list, tuple, or pd.Series containing strings or pd.Timestamps.")
     
 def academic_year_parser(inpt):
+    """Takes in a date and returns which academic year it's a part of."""
     return _academic_year_parser(inpt)
+
+def _reverse_academic_year_parser(inpt, year_start_end):
+    assert is_type(inpt, str), 'Input must be a string or list of strings specifying academic year'
+
+    def _acayear_instance_processor(inpt, year_start_end):
+        if '-' in inpt:
+            years = inpt.split('-')
+            start = pd.Timestamp(f"{years[0]}-{year_start_end[0][0]}-{year_start_end[0][1]}")
+            end = pd.Timestamp(f"{years[1]}-{year_start_end[1][0]}-{year_start_end[1][1]}")
+        elif 'fy' in inpt.lower():
+            end_year = f"20{inpt[2:]}"
+            start_year = str(int(end_year) - 1)
+            start = pd.Timestamp(f"{start_year}-{year_start_end[0][0]}-{year_start_end[0][1]}")
+            end = pd.Timestamp(f"{end_year}-{year_start_end[1][0]}-{year_start_end[1][1]}")
+        else:
+            raise ValueError('Inputted academic year belongs to unkown format.')
+        return (start, end)
+    if isinstance(inpt, str):
+        return _acayear_instance_processor(inpt, year_start_end)
+    elif isinstance(inpt, get_valid_iter()):
+        return list(_reverse_academic_year_parser(np.array(inpt)))
+    else: 
+        raise ValueError("Input must be a string, or a list os strings indicating academic year in a known format.")
+
+def reverse_academic_year_parser(inpt, year_start_end=((8, 15), (5, 20))):
+    """Takes in a academic year and returns a tuple indicating date range that pertains to said academic year.
+    If there are multiple academic years, returns as a list of 2d tuples.
+
+    year_start_end: requires you to specify the month and date of the start of the academic year and end of 
+    the academic year in a nested tuple format ((start_month, start_day), (end_month, end_day))
+    
+    Handles following formats:
+    - year-year (eg. 2023-2024)
+    - FY## (eg. FY24 corrsponding to 2023-2024)"""
+    return _reverse_academic_year_parser(inpt, year_start_end)
 
 def type_test(df, str_cols=None, int_cols=None, float_cols=None, date_cols=None):
     # public function

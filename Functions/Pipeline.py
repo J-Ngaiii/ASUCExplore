@@ -6,9 +6,9 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Utils import column_converter, column_renamer, oasis_cleaner
+from .Utils import column_converter, column_renamer, oasis_cleaner, heading_finder
 from .Cleaning import is_type, in_df, concatonater, academic_year_parser
-from .Pipeline_OASIS import heading_finder, year_rank_collision_handler
+from .Pipeline_OASIS import year_rank_collision_handler
 from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
 from .Pipeline_FR import FR_Processor
 

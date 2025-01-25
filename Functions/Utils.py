@@ -201,3 +201,17 @@ def category_updater(df1, df2):
     indices = cop[cop['OASIS RSO Designation'] != df1['OASIS RSO Designation']].index #indices of all non-NaN values (the values we changed)
     print(f'{len(indices)} values updated')
     return cop, indices
+
+def heading_finder(df, col, inpt):
+    """If a input's header is moved down a couple rows, checks for the where the correct header is and adjusts the dataframe to start at the right header."""
+    assert isinstance(col, str) or isinstance(col, int), 'col must be index of column or name of column.'
+    assert in_df(col, df), 'Given col is not in the given df.'
+    if isinstance(col, str):
+        col_index = df.columns.get_loc(col)
+    else:
+        col_index = col
+    for i in range(len(df)):
+        curr_entry = df.iloc[i,col_index].strip()
+        if curr_entry == inpt:
+            return df.iloc[i:,:]
+    raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
