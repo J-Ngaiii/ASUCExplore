@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 
-_valid_iterables = (list, tuple, pd.Series, np.array)
+_valid_iterables = (list, tuple, pd.Series, np.ndarray)
 
 def get_valid_iter():
     return _valid_iterables
@@ -15,7 +15,7 @@ def _is_type(inpt, t):
         """Checks if input is of type t or (if an iterable) if all elems of input are of type t"""
         return isinstance(inpt, t) or (isinstance(inpt, get_valid_iter()) and all(isinstance(x, t) for x in inpt))
     
-    if isinstance(t, (tuple, list, pd.Series, np.array)):
+    if isinstance(t, get_valid_iter()):
         return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
         return _is_type_helper(inpt, t)

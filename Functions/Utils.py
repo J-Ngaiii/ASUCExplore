@@ -6,7 +6,7 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Cleaning import is_type, in_df, any_in_df
+from .Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser
 
 def column_converter(df, cols, t, datetime_element_looping = False):
     """
@@ -138,6 +138,15 @@ def oasis_cleaner(OASIS_master, approved_orgs_only=True, year=None, club_type=No
     if any_in_df(standard_drop_cols, OASISCleaned):
         OASISCleaned = any_drop(OASISCleaned, standard_drop_cols)
     return OASISCleaned
+
+def sucont_cleaner(df, year):
+    """Version 1.0: Just handles cleaning for years"""
+    assert ('Date' in df.columns) and is_type(df['Date'], pd.Timestamp), 'df must have "Date" column that contains only pd.Timestamp objects'
+    
+    copy = df.copy()
+    year_range = reverse_academic_year_parser(year)
+    mask = (copy['Date'] >= year_range[0]) & (copy['Date'] <= year_range[1])
+    return copy[mask]
 
 def bulk_manual_populater(df, override_cols, indices, override_values): 
     """
