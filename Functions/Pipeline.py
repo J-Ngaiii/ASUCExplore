@@ -78,6 +78,7 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
      - custom_close_match_settings: iterable that unpacks into arg values for close_match_sower
         - Args to fill: matching_col, mismatch_col, fuzz_threshold, filter, nlp_processing, nlp_process_threshold, nlp_threshold
     """
+    assert in_df('')
     #phase 1: pre-processing
     inpt_agenda = cont_approval(inpt_agenda) #process agenda
     inpt_agenda['Year'] = academic_year_parser(inpt_agenda['Ficomm Meeting Date']) #add year column
@@ -91,12 +92,11 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
     #phase 3: cleaning columns
     if valid_cols is None: 
         #standard settings is to use the standard column layout
-        standard_ficomm_layout = ['Org ID', 'Organization Name',	'Org Type',	'Callink Page',	'OASIS RSO Designation', 'OASIS Center Advisor', 'Year', 'Year Rank', 'Active', 'Ficomm Meeting Date', 'Ficomm Decision', 'Amount Allocated']
-        assert in_df(standard_ficomm_layout), "Standard columns not detected in DF"
+        standard_ficomm_layout = ['Org ID', 'Organization Name', 'Org Type', 'Callink Page', 'OASIS RSO Designation', 'OASIS Center Advisor', 'Year', 'Year Rank', 'Active', 'Ficomm Meeting Date', 'Ficomm Decision', 'Amount Allocated']
         df = df[standard_ficomm_layout]
     else: 
-        assert is_type(valid_cols, str)
-        assert in_df(valid_cols), "Inputted columns for arg 'valid_cols' not detected in DF"
+        assert is_type(valid_cols, str), "Inputted 'valid_cols' not strings or list of strings."
+        assert in_df(valid_cols, df), "Inputted'valid_cols' not detected in df."
         df = df[valid_cols]
 
     #phase 4(O): apply fuzzywuzzy/nlp name matcher for names that are slightly mispelled
