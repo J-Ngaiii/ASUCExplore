@@ -74,6 +74,7 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
 def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, custom_close_match_settings=None, valid_cols=None):
     """
     Expected Intake: Df with following columns: 
+    inpt_OASIS: a master OASIS doc, it autocleans for the right year in phase 1xw
 
      - custom_close_match_settings: iterable that unpacks into arg values for close_match_sower
         - Args to fill: matching_col, mismatch_col, fuzz_threshold, filter, nlp_processing, nlp_process_threshold, nlp_threshold

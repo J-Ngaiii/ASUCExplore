@@ -6,7 +6,7 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser
+from .Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
 
 def column_converter(df, cols, t, datetime_element_looping = False):
     """
@@ -121,7 +121,7 @@ def oasis_cleaner(OASIS_master, approved_orgs_only=True, year=None, club_type=No
                     raise AssertionError("All floats in `year` must represent integers.")
 
     OASISCleaned = OASIS_master.copy()
-    assert in_df(['Active', 'Year', 'Year Rank', 'OASIS RSO Designation']), "'Year', 'Year Rank', 'Active' or 'OASIS RSO Designation' columns not found in inputted OASIS dataset."
+    assert in_df(['Active', 'Year', 'Year Rank', 'OASIS RSO Designation'], OASIS_master), "'Year', 'Year Rank', 'Active' or 'OASIS RSO Designation' columns not found in inputted OASIS dataset."
     if approved_orgs_only:
         OASISCleaned = OASISCleaned[OASISCleaned['Active'] == 1]
 
@@ -211,16 +211,63 @@ def category_updater(df1, df2):
     print(f'{len(indices)} values updated')
     return cop, indices
 
-def heading_finder(df, col, inpt):
-    """If a input's header is moved down a couple rows, checks for the where the correct header is and adjusts the dataframe to start at the right header."""
+def heading_finder(df, col, inpt, shift=0, end=None, ending_match=None):
+    """
+    Adjusts the DataFrame to start at the correct header when the header is moved down a few rows.
+    Can specify an ending condition to stop returning values.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame.
+    - col (str or int): Column index or name to search for the header.
+    - inpt (str): The header or value to locate in the column.
+    - shift (int, optional): Number of rows to adjust after finding the header. Default is 0.
+    - end (str, int, or list, optional): The ending value(s) or row index to limit the DataFrame.
+    - ending_match (str, optional): Matching method for the `end` value.
+      Options: 'exact', 'contains', 'in'. Default is None.
+
+    Returns:
+    - pd.DataFrame: The adjusted DataFrame starting from the located header and ending at the specified end.
+    """
     assert isinstance(col, str) or isinstance(col, int), 'col must be index of column or name of column.'
     assert in_df(col, df), 'Given col is not in the given df.'
-    if isinstance(col, str):
-        col_index = df.columns.get_loc(col)
-    else:
-        col_index = col
-    for i in range(len(df)):
-        curr_entry = df.iloc[i,col_index].strip()
-        if curr_entry == inpt:
-            return df.iloc[i:,:]
-    raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
+
+    col_index = df.columns.get_loc(col) if isinstance(col, str) else col
+
+    start_index = df.index.get_loc(df[df.iloc[:, col_index].str.strip() == inpt].index) #select first if multiple entries exist
+    if start_index.empty:
+        raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
+
+    start_index = start_index[0] + shift
+    if start_index >= len(df):
+        raise ValueError("Shifted start index exceeds DataFrame length.")
+
+    df = df.iloc[start_index:]
+
+    if end is not None:
+        if isinstance(end, int):
+            if end < len(df):
+                return df.iloc[:end]
+            raise ValueError("Ending index exceeds the remaining DataFrame length.")
+
+        elif isinstance(end, get_valid_iter()): 
+            pattern = '|'.join(map(str, end))
+            if ending_match == 'exact':
+                end_matches = df[df.iloc[:, col_index].isin(end)].index
+            elif ending_match == 'contains':
+                end_matches = df[df.iloc[:, col_index].fillna('').str.contains(pattern, na=False)].index
+            else:
+                raise ValueError("Invalid 'ending_match'. Use 'exact' or 'contains'.")
+        else:  
+            if ending_match == 'exact':
+                end_matches = df[df.iloc[:, col_index] == end].index
+            elif ending_match == 'contains':
+                end_matches = df[df.iloc[:, col_index].fillna('').str.contains(str(end), na=False)].index
+            else:
+                raise ValueError("Invalid 'ending_match'. Use 'exact' or 'contains'.")
+
+        if not end_matches.empty:
+            end_index = df.index.get_loc(end_matches[0])
+            return df.iloc[:end_index]
+        raise ValueError(f"End value '{end}' not found in column '{col}'.")
+
+    return df
