@@ -359,7 +359,6 @@ def asuc_processor(df):
         else:
             return org_name
         
-    
     assert in_df(['Organization Name', 'OASIS RSO Designation'], df), '"Organization Name" and/or "OASIS RSO Designation" not present in inputted df.'
     assert is_type(df['Organization Name'], str), "Column 'Organization Name' exists in inputted def but doesn't contain datatype string objects"
     assert is_type(df['OASIS RSO Designation'], str), "Column 'OASIS RSO Designation' exists in inputted def but doesn't contain datatype string objects"

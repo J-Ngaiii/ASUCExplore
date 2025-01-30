@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 
-_valid_iterables = (list, tuple, pd.Series, np.ndarray)
+_valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index)
 
 def get_valid_iter():
     return _valid_iterables

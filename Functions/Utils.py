@@ -211,7 +211,7 @@ def category_updater(df1, df2):
     print(f'{len(indices)} values updated')
     return cop, indices
 
-def heading_finder(df, col, inpt, shift=0, end=None, ending_match=None):
+def heading_finder(df, col, inpt, shift=0, end=None, starting_match=None, ending_match=None):
     """
     Adjusts the DataFrame to start at the correct header when the header is moved down a few rows.
     Can specify an ending condition to stop returning values.
@@ -228,16 +228,54 @@ def heading_finder(df, col, inpt, shift=0, end=None, ending_match=None):
     Returns:
     - pd.DataFrame: The adjusted DataFrame starting from the located header and ending at the specified end.
     """
+    def _get_loc_wrapper(df, index_iter, elem=None):
+        """returns numerical index or list of numerical indices corresponding to a non-numerical index or list of non-numerical indices
+        index_iter: the instance or list of non-numerical indices to be converted into numerical integer indices"""
+        
+        if isinstance(index_iter, get_valid_iter()):
+            assert all(index_iter.isin(df.index)), f"Not all entries in 'index_iter' under 'heading_finder' > '_get_loc_wrapper' are found in inputted df.index : {df.index}"
+        
+        if isinstance(index_iter, int):
+            return df.index.get_loc(index_iter)
+        else: 
+            index_iter = pd.Series(index_iter)
+            try:
+                print(f"get col index itter: {index_iter}")
+                indices = pd.Series(index_iter).apply(lambda x: df.index.get_loc(x)).sort_values()
+                if indices.empty:
+                    raise ValueError('_get_loc_wrapper indices negative')
+                if elem is None: 
+                    return indices
+                else: 
+                    assert is_type(elem, int), "Inputted 'elem' arg must be int or list of int specifyig indices to extract."
+                    return indices[elem]
+            except Exception as e:
+                raise e
+
     assert isinstance(col, str) or isinstance(col, int), 'col must be index of column or name of column.'
     assert in_df(col, df), 'Given col is not in the given df.'
 
-    col_index = df.columns.get_loc(col) if isinstance(col, str) else col
+    col_index = df.columns.get_loc(col) if isinstance(col, str) else col #extract index of column
 
-    start_index = df.index.get_loc(df[df.iloc[:, col_index].str.strip() == inpt].index) #select first if multiple entries exist
-    if start_index.empty:
+    # print(f"col_index value: {col_index}")
+    # print(f"Label: {inpt}")
+    # print(f"Inputted index iter: {df[df.iloc[:, col_index].str.strip() == inpt].index}")
+    
+    if starting_match == 'exact':
+        matching_indices = df[df.iloc[:, col_index].astype(str).str.strip() == str(inpt)].index
+    elif starting_match == 'contains':
+        matching_indices = df[df.iloc[:, col_index].astype(str).str.strip().str.contains(str(inpt), regex=False, na=False)].index
+    else: 
+        raise ValueError("Invalid 'starting_match'. Use 'exact' or 'contains'.") 
+
+    if matching_indices.empty:
         raise ValueError(f"Header '{inpt}' not found in column '{col}'.")
 
-    start_index = start_index[0] + shift
+    start_index = df.index.get_loc(matching_indices[0]) #select first if multiple entries exist
+
+    # print(f"type start: {type(start_index)}")
+    # print(f"type shift: {type(shift)}")
+    start_index = start_index + shift
     if start_index >= len(df):
         raise ValueError("Shifted start index exceeds DataFrame length.")
 
@@ -267,7 +305,15 @@ def heading_finder(df, col, inpt, shift=0, end=None, ending_match=None):
 
         if not end_matches.empty:
             end_index = df.index.get_loc(end_matches[0])
-            return df.iloc[:end_index]
+            rv = df.iloc[:end_index]
+            rv_header = df.iloc[0,:]
+            rv = rv[1:]
+            rv.columns = rv_header
+            return rv
         raise ValueError(f"End value '{end}' not found in column '{col}'.")
 
+    rv = df
+    rv_header = df.iloc[0,:]
+    rv = rv[1:]
+    rv.columns = rv_header
     return df
