@@ -27,12 +27,12 @@ def _is_type(inpt, t):
         Checks if the input is of a specified type `t` or, if an iterable, 
         whether all elements in `inpt` are of type `t`.
         """
-        if isinstance(inpt, get_valid_iter()) and inpt.empty:
+        if isinstance(inpt, get_valid_iter()) and len(inpt) == 0:
             raise ValueError("Input iterable to check types of is an empty iterable.")
         return isinstance(inpt, t) or (isinstance(inpt, get_valid_iter()) and all(isinstance(x, t) for x in inpt))
     
     if isinstance(t, get_valid_iter()):
-        if t.empty:
+        if len(t) == 0:
             raise ValueError("Type input 't' is an empty iterable.")
         return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
