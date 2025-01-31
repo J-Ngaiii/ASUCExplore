@@ -70,5 +70,11 @@ def ABSA_Processor(df, Cats=None, Drop=None, Add=None):
         else:
             print(f"Warning: Column '{label}' not found in DataFrame columns. Available columns: {no_header_result.columns.tolist()}")
         sub_frames.append(no_header_result)
-    
+        
+    # for label in Types['Final Counts']:
+    #     result = df[df.iloc[:,0] == label]
+    #     if result.empty:
+    #         raise ValueError(f'No exact matches found in first column for label {label}')
+        ### TO DO ###
+
     return pd.concat(sub_frames, ignore_index=True)
