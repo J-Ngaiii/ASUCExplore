@@ -6,11 +6,11 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Utils import column_converter, column_renamer, oasis_cleaner, heading_finder
-from .Cleaning import is_type, in_df, concatonater, academic_year_parser
-from .Pipeline_OASIS import year_rank_collision_handler
-from .Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
-from .Pipeline_FR import FR_Processor
+from ASUCExplore.Functions.Utils import column_converter, column_renamer, oasis_cleaner, heading_finder
+from ASUCExplore.Functions.Cleaning import is_type, in_df, concatonater, academic_year_parser
+from ASUCExplore.Functions.Pipeline_OASIS import year_rank_collision_handler
+from ASUCExplore.Functions.Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
+from ASUCExplore.Functions.Pipeline_FR import FR_Processor
 
 def SU_Cont_Processor(df):
     """

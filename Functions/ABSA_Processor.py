@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from Utils import heading_finder
+from ASUCExplore.Functions.Utils import heading_finder
 
 def ABSA_Processor(df, Types=None):
     """Function to take ABSA CSVs and convert into dataframes."""

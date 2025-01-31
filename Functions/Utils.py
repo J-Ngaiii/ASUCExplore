@@ -6,7 +6,7 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from .Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
+from ASUCExplore.Functions.Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
 
 def column_converter(df, cols, t, datetime_element_looping = False):
     """
