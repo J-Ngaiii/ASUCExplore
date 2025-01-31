@@ -9,24 +9,87 @@ def get_valid_iter():
 
 def _is_type(inpt, t):
     # private function
-    """Checks if input is type t. 
-    Can handle iterable specifying multiple types to check against for t, in which case function checks if inpt/elems in inpt belongs to at least one type in t."""
+    """
+    Private helper function to check if an input is of a specified type or, if iterable, 
+    whether all elements belong to at least one specified type.
+
+    Args:
+        inpt: The input value or iterable of values to be checked.
+        t: A single type or an iterable of types to validate against.
+
+    Returns:
+        bool: True if `inpt` matches at least one of the specified types, 
+              or if `inpt` is an iterable and all its elements match at least one type in `t`. 
+              False otherwise.
+    """
     def _is_type_helper(inpt, t):
-        """Checks if input is of type t or (if an iterable) if all elems of input are of type t"""
+        """
+        Checks if the input is of a specified type `t` or, if an iterable, 
+        whether all elements in `inpt` are of type `t`.
+        """
+        if isinstance(inpt, get_valid_iter()) and inpt.empty:
+            raise ValueError("Input iterable to check types of is an empty iterable.")
         return isinstance(inpt, t) or (isinstance(inpt, get_valid_iter()) and all(isinstance(x, t) for x in inpt))
     
     if isinstance(t, get_valid_iter()):
+        if t.empty:
+            raise ValueError("Type input 't' is an empty iterable.")
         return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
         return _is_type_helper(inpt, t)
     
 def is_type(inpt, t):
-    """inpt is either a single value or iterable containing values. 
-    t is either a single type of a iterable containing valid types."""
+    """
+    Public function to check if an input is of a specified type or, if iterable, 
+    whether all elements belong to at least one specified type.
+
+    Args:
+        inpt: The input value or iterable of values to be checked.
+        t: A single type or an iterable containing multiple types to validate against.
+
+    Returns:
+        bool: 
+            - True if `inpt` is of type `t`.
+            - True if `inpt` is an iterable and all its elements match at least one type in `t`.
+            - False otherwise.
+
+    Examples:
+        >>> is_type(5, int)
+        True
+        
+        >>> is_type([1, 2, 3], int)
+        True
+        
+        >>> is_type(["hello", 3], (int, str))
+        True
+        
+        >>> is_type(["hello", 3], int)
+        False
+    """
+    
     return _is_type(inpt, t)
     
 def _in_df(inpt, df):
     #private function
+    """
+    Private function to check if a given input (column label or index) exists in a DataFrame.
+
+    Args:
+        inpt: A string (column label), an integer (column index), or an iterable (tuple, list, or pd.Series) of strings or integers.
+        df (pd.DataFrame): The DataFrame to check against.
+
+    Returns:
+        bool: 
+            - True if `inpt` is a column label in `df` (if `inpt` is a string).
+            - True if `inpt` is a valid column index in `df` (if `inpt` is an integer and non-negative).
+            - True if all elements in `inpt` exist as column labels in `df` (if `inpt` is an iterable of strings).
+            - True if all elements in `inpt` are valid column indices in `df` (if `inpt` is an iterable of non-negative integers).
+            - False otherwise.
+
+    Raises:
+        AssertionError: If `inpt` is not a string, integer, or an iterable of strings/integers.
+        AssertionError: If `inpt` is a negative integer.
+    """
     assert is_type(inpt, (str, int)), 'inpt must be string, int or tuple, list or pd.Series of strings or ints.'
     if isinstance(inpt, str): 
         return inpt in df.columns
@@ -40,11 +103,47 @@ def _in_df(inpt, df):
 
 
 def in_df(inpt, df):
+    """
+    Public function to check if a given input (column label or index) exists in a DataFrame.
+
+    This function wraps `_in_df()`.
+
+    Args:
+        inpt: A string (column label), an integer (column index), or an iterable (tuple, list, or pd.Series) of strings or integers.
+        df (pd.DataFrame): The DataFrame to check against.
+
+    Returns:
+        bool: True if `inpt` exists in the DataFrame as a column label or index, False otherwise.
+
+    Examples:
+        >>> in_df("ColumnA", df)
+        True
+        
+        >>> in_df([0, 2, 4], df)
+        True
+    """
     return _in_df(inpt, df)
     
 def _any_in_df(inpt, df):
     #private function
-    """Function does not handle ints because you would not need to check if some cols are or are not in df based on index, just use df.shape"""
+    """
+    Private function to check if at least one column in an iterable exists in a DataFrame.
+
+    This function does not handle integers because DataFrame shape can be used to check if an index exists.
+
+    Args:
+        inpt: A string (column label) or an iterable (tuple, list, or pd.Series) of strings.
+        df (pd.DataFrame): The DataFrame to check against.
+
+    Returns:
+        bool: 
+            - True if `inpt` is a column label in `df` (if `inpt` is a string).
+            - True if at least one element in `inpt` exists as a column label in `df` (if `inpt` is an iterable of strings).
+            - False otherwise.
+
+    Raises:
+        AssertionError: If `inpt` is not a string or an iterable of strings.
+    """
     assert is_type(inpt, str), 'inpt must be string or tuple, list or pd.Series of strings.'
     if isinstance(inpt, str): 
         return inpt in df.columns
@@ -52,6 +151,25 @@ def _any_in_df(inpt, df):
         return any(df.columns.isin(inpt))
     
 def any_in_df(inpt, df):
+    """
+    Public function to check if at least one column in an iterable exists in a DataFrame.
+
+    This function wraps `_any_in_df()`.
+
+    Args:
+        inpt: A string (column label) or an iterable (tuple, list, or pd.Series) of strings.
+        df (pd.DataFrame): The DataFrame to check against.
+
+    Returns:
+        bool: True if at least one element in `inpt` exists in the DataFrame as a column label, False otherwise.
+
+    Examples:
+        >>> any_in_df("ColumnA", df)
+        True
+        
+        >>> any_in_df(["ColumnA", "NonexistentColumn"], df)
+        True
+    """
     return _any_in_df(inpt, df)
     
 def _concatonater(input_df, base_df, sort_cols=None):

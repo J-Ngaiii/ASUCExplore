@@ -2,16 +2,56 @@ import numpy as np
 import pandas as pd
 
 from ASUCExplore.Functions.Utils import heading_finder
+from ASUCExplore.Functions.Cleaning import is_type
 
-def ABSA_Processor(df, Types=None):
-    """Function to take ABSA CSVs and convert into dataframes."""
+def ABSA_Processor(df, Cats=None, Drop=None, Add=None):
+    """Function to take ABSA CSVs and convert into dataframes.
+    Cats happens first then Drop then Add, so you can replace the standard setting with dats then drop"""
 
-    if Types is None:
-        Types = {}
-        Types['Header'] = ['ASUC Chartered Programs and Commissions', 'Publications (PUB) Registered Student Organizations', 'Student Activity Groups (SAG)', 'Student-Initiated Service Group (SISG)']
-        Types['No Header'] = ['Office of the President', 'Office of the Executive Vice President', 'Office of External Affairs Vice President', 'Office of the Academic Affairs Vice President', "Student Advocate's Office", 'Senate', 'Appointed Officials', 'Operations', 'Elections', 'External Expenditures']
-        Types['Final Counts'] = ['ASUC External Budget', 'ASUC Internal Budget', 'FY25 GENERAL BUDGET']
-    
+    Types = {
+        'Header': [
+            'ASUC Chartered Programs and Commissions', 'Publications (PUB) Registered Student Organizations',
+            'Student Activity Groups (SAG)', 'Student-Initiated Service Group (SISG)'
+        ],
+        'No Header': [
+            'Office of the President', 'Office of the Executive Vice President', 'Office of External Affairs Vice President',
+            'Office of the Academic Affairs Vice President', "Student Advocate's Office", 'Senate', 'Appointed Officials',
+            'Operations', 'Elections', 'External Expenditures'
+        ],
+        'Final Counts': ['ASUC External Budget', 'ASUC Internal Budget', 'FY25 GENERAL BUDGET'] #may be referenced later if we build out the function further
+    } 
+
+    if Cats is not None:
+        assert isinstance(Cats, dict), "Cats must be a dictionary."
+        if not all(key in Cats.keys() for key in ['Header', 'No Header']):
+            raise ValueError("Cats must specify both 'Header' and 'No Header' categories.") 
+        Types['Header'] = Cats['Header']
+        Types['No Header'] = Cats['No Header']
+
+    if Drop is not None:
+        def _dropper(instance, dictionary):
+            """Removes an instance from either 'Header' or 'No Header'."""
+            if instance in set(dictionary['Header']): #convert to set for amortized O(1) membership checking, yay hashsets
+                dictionary['Header'].remove(instance)
+            elif instance in set(Types['No Header']):
+                dictionary['No Header'].remove(instance)
+            else: 
+                raise ValueError(f"""Drop input {instance} not in any of the subframes set to be selected. Subframes to be selected include:
+                                    'Header' subframes: {Types['Header']}
+                                    'No Header' subframes: {Types['No Header']}
+                                """)
+            
+        assert is_type(Drop, str), 'Drop must be a string or iterable of strings specifying column type'
+        if isinstance(Drop, str):
+            _dropper(Drop, Types)
+        else:
+            for cat in Drop: #convert to set for amortized O(1) membership checking, yay hashsets
+                _dropper(cat, Types)
+
+    # if Add is not none: 
+        ### TO DO ###
+
+
     sub_frames = []
     for label in Types['Header']:
         header_result = heading_finder(df, 0, label, 1, 'SUBTOTAL', 'exact', 'contains')
