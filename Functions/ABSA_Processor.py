@@ -24,6 +24,11 @@ def ABSA_Processor(df, Types=None):
         no_header_result['Org Category'] = np.full(len(no_header_result), label)
         no_header_result = no_header_result.loc[:, ~no_header_result.columns.isna()]
         no_header_result = no_header_result.reset_index(drop=True)
+        no_header_result.columns = no_header_result.columns.str.strip()
+        if label in no_header_result.columns:
+            no_header_result = no_header_result.rename(columns={label: 'Organization'})
+        else:
+            print(f"Warning: Column '{label}' not found in DataFrame columns. Available columns: {no_header_result.columns.tolist()}")
         sub_frames.append(no_header_result)
     
     return pd.concat(sub_frames, ignore_index=True)
