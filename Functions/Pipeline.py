@@ -70,6 +70,8 @@ def SU_Cont_Processor(df, str_cols=None, date_cols=None, float_cols=None):
     SUContCleaned['Recipient'] = SUContCleaned['Recipient'].apply(lambda x: 'ASUC ' + x if (type(x) is str) and ('Office of Senator' in x) else x) #make sure type check goes first or else function tries to check membership against NaN values which are floats
     SUContCleaned['Recipient'] = SUContCleaned['Recipient'].apply(lambda x: 'ASUC - Office of the Executive Vice President' if (type(x) is str) and (x == 'ASUC EVP') else x) #this is only here cuz one time EVP was entered as "EVP" rather than the full name
 
+    return SUContCleaned
+
 def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=None):
     """
     Expected Intake: 
