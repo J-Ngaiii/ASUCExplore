@@ -146,7 +146,7 @@ def sucont_cleaner(df, year):
     copy = df.copy()
     year_range = reverse_academic_year_parser(year)
     mask = (copy['Date'] >= year_range[0]) & (copy['Date'] <= year_range[1])
-    return copy[mask]
+    return pd.DataFrame(copy[mask])
 
 def bulk_manual_populater(df, override_cols, indices, override_values): 
     """
