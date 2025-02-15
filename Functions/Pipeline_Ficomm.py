@@ -7,6 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from rapidfuzz import fuzz, process
 
 from ASUCExplore.Functions.Cleaning import in_df, is_type
+from ASUCExplore.Functions.Utils import column_converter
 
 def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
@@ -53,6 +54,8 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
 
       It is primarily used for processing Ficomm agendas, where sections are delineated by specific keywords such as 'Contingency Funding' and 'Finance Rule'. The generated regex pattern is designed for use in functions like `re.findall()` to extract sections of text between these markers.
 
+      Version 3.0: uses motion_processor
+      
       Args:
          pattern (str): The base regular expression pattern to which the start and end keywords will be appended. This serves as the starting point for building the full regex.
          start_list (list): A list of keywords that mark the beginning of the section to capture. The function will match the first occurrence of any of these keywords.
@@ -105,6 +108,8 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
       return pattern
 
    def motion_processor(club_names, names_and_motions):
+      """Takes in a list of club names for a given chunk and a list of club names and motions.
+      The list of club names and motions must be arranged such that all motions relevant to a particular club comes after the club name appears in the list."""
       rv = {}
       club_set = set(club_names)  # Convert to set for faster lookup
       curr_club = None
@@ -121,6 +126,8 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
 
       return rv
 
+   missing_section_msg = 'No section found for this date'
+
    if input == "":
       raise Exception('Input text is empty')
    
@@ -136,27 +143,27 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
       initial_pattern = f'{d}[\s\S]*?('
       meeting_pattern = _cont_date_chunker(initial_pattern) #Phase 1: extract chunks for each new meeting session based on date
       print(f"meeting pattern: {meeting_pattern}")
-      curr_chunk = re.findall(rf'{meeting_pattern}', input)[0]
+      curr_chunk = re.findall(meeting_pattern, input)[0]
       cont_pattern = _cont_appender_helper(initial_pattern, start, end) #Phase 2: extract a match for if there's a contingency funding section
-      print(f"contingency pattern: {cont_pattern}")
-      match = re.findall(rf'{cont_pattern}', curr_chunk)
+      # print(f"contingency pattern: {cont_pattern}")
+      match = re.findall(cont_pattern, curr_chunk)
 
       #if we get a chunk of contingency apps under this meeting date
       if match != []:
          chunk = match[0]
-         print(f"chunk: {chunk}")
+         # print(f"chunk: {chunk}")
 
          #club name pattern works by checking for a digit, (all characters of a club name) in capture group to be returned, then a new line, spaces and the next digit signifiying the start of the first motion
          #NOTE for club names with no motions like "3. No name club <new line with no text>, <new line> 2. " it matches the empty lines till "2."
          valid_name_chars = '\w\s\-\_\*\&\%\$\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters?
          club_name_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)' #first part looks for a date, then excluding motion and seconded, then club names
          club_names = re.findall(club_name_pattern, chunk) #just matches club names --> list of tuples of club names
-         print(f"club names pattern: {club_name_pattern}")
-         print(f"club names: {club_names}")
+         # print(f"club names pattern: {club_name_pattern}")
+         # print(f"club names: {club_names}")
 
-         names_and_motions = re.findall(rf'\d+\.\s([{valid_name_chars}]+)\n', chunk)
+         names_and_motions = re.findall(rf'\d+\.\s(.+)\n?', chunk) #pattern matches every single line that comes in the format "<digit>.<space><anything>""
          motion_dict = motion_processor(club_names, names_and_motions)
-         print(f"motion dict: {motion_dict}")
+         # print(f"motion dict: {motion_dict}")
          
          #motions pattern handles text of the form (this is the same as what is outputted with chunk): 
          #Contingency Funding (whatever starting keyword, as long as there's no number before it)
@@ -186,7 +193,7 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
                
             else:
                sub_motions = " ".join(motion_dict[name]) #flattens list of string motions into one massive continuous string containing all motions
-               print(f'sub-motions: {sub_motions}')
+               # print(f'sub-motions: {sub_motions}')
 
                #for handling multiple conflicting motions (which shouldn't even happen) we record rejections > temporary tabling > approvals > no input
                #when in doubt assume rejection
@@ -209,20 +216,20 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
                else:
                   Entries[name] = 'ERROR could not find conclusive motion'
          Dates_Dict[d] = Entries
-         print(f"Dates Dict so far for {d} is: {Dates_Dict}")
+         # print(f"Dates Dict so far for {d} is: {Dates_Dict}")
       else: 
-         Dates_Dict[d] = 'No section starting and ending with the desired keywords detected in input doc for this date'
+         Dates_Dict[d] = missing_section_msg
          
-   return Dates_Dict
+   return Dates_Dict, missing_section_msg
 
-def _cont_approval_dataframe(dict):
+def _cont_approval_dataframe(d, missing_section_msg):
    """
    Converts the nested dictionary produced by `_cont_approval_helper` into a Pandas DataFrame.
 
    This DataFrame organizes the extracted agenda data, with columns for meeting dates, club names, Ficomm decisions, and allocated amounts (if applicable).
 
    Args:
-      dict (dict): A dictionary containing the processed agenda data, where each date maps to a sub-dictionary of clubs and their Ficomm decisions.
+      d (dict): A dictionary containing the processed agenda data, where each date maps to a sub-dictionary of clubs and their Ficomm decisions.
 
    Returns:
       pandas.DataFrame: A DataFrame with columns 'Ficomm Meeting Date', 'Organization Name', 'Ficomm Decision', and 'Amount Allocated'.
@@ -236,15 +243,31 @@ def _cont_approval_dataframe(dict):
    club_list = []
    result_list = []
    amt_list = []
-   for date in dict:
-      for club in dict[date]:
+
+   # print(f"inputted dict: {d}")
+   # print(f"inputted error: {missing_section_msg}")
+
+   for date in d.keys():
+      if d[date] == missing_section_msg:
          dates_list.append(pd.Timestamp(date))
-         club_list.append(club)
-         result_list.append(dict[date][club])
-         try: 
-            amt_list.append(int(dict[date][club]))
-         except Exception as e: 
-            amt_list.append(0) #NEW CHANGE: check that tabled and denied applications have 0 as amt allocated
+         club_list.append('No contingency apps detected')
+         result_list.append('No contingency apps detected')
+         amt_list.append(0)
+      else:
+         for club in d[date]:
+            dates_list.append(pd.Timestamp(date))
+            club_list.append(club)
+            result_list.append(d[date][club])
+            try: 
+               amt_list.append(int(d[date][club]))
+            except Exception as e: 
+               amt_list.append(0) #NEW CHANGE: check that tabled and denied applications have 0 as amt allocated
+
+   # print(f"dates ({len(dates_list)}): {dates_list}")
+   # print(f"clubs ({len(club_list)}): {club_list}")
+   # print(f"results ({len(result_list)}): {result_list}")
+   # print(f"amount ({len(amt_list)}): {amt_list}")
+
    rv = pd.DataFrame({'Ficomm Meeting Date' : dates_list, 'Organization Name' : club_list, 'Ficomm Decision' : result_list, 'Amount Allocated' : amt_list})
    return rv
 
@@ -264,7 +287,7 @@ def cont_approval(input_txt):
       - This function provides an easy interface for extracting and formatting agenda data into a DataFrame.
       - It handles agenda sections related to contingency funding and applies custom start/end keyword filters if provided.
    """
-   return _cont_approval_dataframe(_cont_approval_helper(input_txt))
+   return _cont_approval_dataframe(*_cont_approval_helper(input_txt))
 
 def sa_filter(entry):
         """
@@ -381,33 +404,37 @@ def close_match_sower(df1, df2, matching_col, mismatch_col, fuzz_threshold, filt
     return copy, could_not_match
     
 def asuc_processor(df):
-    """Checks for any ASUC orgs in a df and upadtes those entries with the 'ASUC' label.
-    Developed cuz ASUC orgs aren't on OASIS so whenever they apply for ficomm funds and their names show up, it shows up as "NA" club type. """
-    def asuc_processor_helper(org_name):
-        asuc_exec = set(['executive vice president', 'office of the president', 'academic affairs vice president', 'external affairs vice president', 'student advocate']) #executive vice president is unique enough, just president is not
-        asuc_chartered = set(['grants and scholarships foundation', 'innovative design', 'superb']) #incomplete: address handling extra characters (eg. grants vs grant)
-        asuc_commission = set(['mental health commision', 'disabled students commission', 'sustainability commission', 'sexual violence commission']) #incomplete
-        asuc_appointed = set(['chief finance officer', 'chief communications officer', 'chief legal officer', 'chief personel officer', 'chief technology officer']) 
-        if org_name.lower().contains('senator') and org_name.lower().contains('asuc'):
-            return 'ASUC: Senator'
-        elif org_name.lower() in asuc_exec and org_name.lower().contains('asuc'):
-            return 'ASUC: Executive'
-        elif org_name.lower() in asuc_commission and org_name.lower().contains('asuc'):
-            return 'ASUC: Commission'
-        elif org_name.lower() in asuc_chartered: # I'm not sure if chartered programs put 'ASUC' in their shit?
-            return 'ASUC: Chartered Program'
-        elif org_name.lower() in asuc_appointed and org_name.lower().contains('asuc'):
-            return 'ASUC: Appointed Office'
-        else:
-            return org_name
-        
-    assert in_df(['Organization Name', 'OASIS RSO Designation'], df), '"Organization Name" and/or "OASIS RSO Designation" not present in inputted df.'
-    assert is_type(df['Organization Name'], str), "Column 'Organization Name' exists in inputted def but doesn't contain datatype string objects"
-    assert is_type(df['OASIS RSO Designation'], str), "Column 'OASIS RSO Designation' exists in inputted def but doesn't contain datatype string objects"
-    
-    cleaned = df.copy()
+   """Checks for any ASUC orgs in a df and upadtes those entries with the 'ASUC' label.
+   Developed cuz ASUC orgs aren't on OASIS so whenever they apply for ficomm funds and their names show up, it shows up as "NA" club type. """
+   def asuc_processor_helper(org_name):
+      asuc_exec = set(['executive vice president', 'office of the president', 'academic affairs vice president', 'external affairs vice president', 'student advocate']) #executive vice president is unique enough, just president is not
+      asuc_chartered = set(['grants and scholarships foundation', 'innovative design', 'superb']) #incomplete: address handling extra characters (eg. grants vs grant)
+      asuc_commission = set(['mental health commision', 'disabled students commission', 'sustainability commission', 'sexual violence commission']) #incomplete
+      asuc_appointed = set(['chief finance officer', 'chief communications officer', 'chief legal officer', 'chief personel officer', 'chief technology officer']) 
+      if 'senator' in org_name.lower() and 'asuc' in org_name.lower():
+         return 'ASUC: Senator'
+      elif org_name.lower() in asuc_exec and org_name.lower().contains('asuc'):
+         return 'ASUC: Executive'
+      elif org_name.lower() in asuc_commission and org_name.lower().contains('asuc'):
+         return 'ASUC: Commission'
+      elif org_name.lower() in asuc_chartered: # I'm not sure if chartered programs put 'ASUC' in their shit?
+         return 'ASUC: Chartered Program'
+      elif org_name.lower() in asuc_appointed and org_name.lower().contains('asuc'):
+         return 'ASUC: Appointed Office'
+      else:
+         return org_name
+      
 
-    cleaned['OASIS RSO Designation'] = cleaned['Organization Name'].apply(asuc_processor_helper)
-    cleaned['ASUC'] = cleaned['OASIS RSO Designation'].apply(lambda x: 1 if x.contains('ASUC') else 0)
+   assert in_df(['Organization Name', 'OASIS RSO Designation'], df), f'"Organization Name" and/or "OASIS RSO Designation" not present in inputted df, both must be present but columns are {df.columns}.'
+   if ~is_type(df['Organization Name'], str):
+      column_converter(df, 'Organization Name', str)
+      
+   if ~is_type(df['OASIS RSO Designation'], str):
+      column_converter(df, 'OASIS RSO Designation', str)
 
-    return cleaned
+   cleaned = df.copy()
+
+   cleaned['OASIS RSO Designation'] = cleaned['Organization Name'].apply(asuc_processor_helper)
+   cleaned['ASUC'] = cleaned['OASIS RSO Designation'].apply(lambda x: 1 if 'ASUC' in x else 0)
+
+   return cleaned

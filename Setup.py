@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="asuc_explore",  # Package name
+    name="asucexplore",  # Package name
     version="1.0.0",  # Version of your package
     author="Jonathan Ngai (ASUC Senator 2024-2025)",  # Your name or organization
     author_email="jngai_@berkeley.edu",  # Optional: Your email address
@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "numpy==1.26.4",      # numpy 1.26.4 is required for Python 3.12 compatibility
         "pandas==2.2.3",
-        "matplotlib==1.9.2",
+        "matplotlib==3.9.2",
         "seaborn==0.13.2",
         "spacy==3.8.2",
         "scikit-learn==1.5.1",  # Ensure scikit-learn 1.5.1 is used (note: incompatible with Python 3.12)

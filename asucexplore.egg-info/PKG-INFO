@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: asucexplore
+Version: 1.0.0
+Summary: Tools for exploring and analyzing ASUC financial data.
+Home-page: https://github.com/J-Ngaiii/asuc-explore
+Author: Jonathan Ngai (ASUC Senator 2024-2025)
+Author-email: jngai_@berkeley.edu
+Requires-Python: >=3.11,<3.12
+Description-Content-Type: text/markdown
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pandas==2.2.3
+Requires-Dist: matplotlib==3.9.2
+Requires-Dist: seaborn==0.13.2
+Requires-Dist: spacy==3.8.2
+Requires-Dist: scikit-learn==1.5.1
+Requires-Dist: rapidfuzz==3.5.2
+
+# ASUCExplore Package
+This package is a collection of the data cleaning and pipeline functions I developed when cleaning and analyzing ASUC Contingency data. More information can be seen in the 'ASUC-Finance-Budget-Analysis' repo. They are scaled for large data intake.

@@ -126,15 +126,16 @@ def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=Non
     else: 
         return cleaned_df
 
-def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, custom_close_match_settings=None, valid_cols=None):
+def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=True, custom_close_match_settings=None, valid_cols=None, breaking=None):
     """
     Expected Intake: Df with following columns: 
-    inpt_OASIS: a master OASIS doc, it autocleans for the right year in phase 1xw
+    inpt_OASIS: a master OASIS doc, it autocleans for the right year in phase 1
 
      - custom_close_match_settings: iterable that unpacks into arg values for close_match_sower
         - Args to fill: matching_col, mismatch_col, fuzz_threshold, filter, nlp_processing, nlp_process_threshold, nlp_threshold
+
+    V2.0: uses motion_processor cont approval 
     """
-    assert in_df('')
     #phase 1: pre-processing
     inpt_agenda = cont_approval(inpt_agenda) #process agenda
     inpt_agenda['Year'] = academic_year_parser(inpt_agenda['Ficomm Meeting Date']) #add year column
@@ -142,8 +143,16 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
     inpt_agenda['Organization Name'] = inpt_agenda['Organization Name'].str.strip()
     inpt_OASIS = oasis_cleaner(inpt_OASIS, True, list(inpt_agenda['Year'].unique()))
 
+    if breaking == 1:
+        print('Retuning "inpt_OASIS" and "inpt_agenda" after phase 1 cleaning.')
+        return {"inpt_agenda" : inpt_agenda, "inpt_OASIS": inpt_OASIS}
+
     #phase 2: Initial matching
     df = pd.merge(inpt_OASIS, inpt_agenda, on=['Organization Name', 'Year'], how='right') #initial match
+
+    if breaking == 2:
+        print('Retuning "df" after merging "inpt_OASIS" and "inpt_agenda" in phase 2.')
+        return {"df" : df}
 
     #phase 3: cleaning columns
     if valid_cols is None: 
@@ -155,29 +164,50 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
         assert in_df(valid_cols, df), "Inputted'valid_cols' not detected in df."
         df = df[valid_cols]
 
+    if breaking == 3:
+        print('Retuning "df" after cleaning columns in phase 3.')
+        return {"df" : df}
+
     #phase 4(O): apply fuzzywuzzy/nlp name matcher for names that are slightly mispelled
     if close_matching:
         if custom_close_match_settings is None:
             assert in_df(['Organization Name', 'OASIS RSO Designation'], inpt_OASIS)
 
             updated_df, _ = close_match_sower(df, inpt_OASIS, 'Organization Name', 'OASIS RSO Designation', 87.9,  sa_filter) #optimal settings based on empirical testing
+            
+            if breaking == 3.5:
+                print('Retuning "updated_df" immediately after creation in the middle of phase 4.')
+                return {"updated_df" : updated_df}
+
             updated_df = asuc_processor(updated_df)
             failed_match = updated_df[updated_df['OASIS RSO Designation'].isna()]['Organization Name']
             print(f"Note some club names were not recognized: {failed_match}")
         else: 
             updated_df, _ = close_match_sower(df, inpt_OASIS, *custom_close_match_settings) #optimal settings based on empirical testing
+            
+            if breaking == 3.5:
+                print('Retuning "updated_df" immediately after creation in the middle of phase 4.')
+                return {"updated_df" : updated_df}
+            
             updated_df = asuc_processor(updated_df)
             failed_match = updated_df[updated_df['OASIS RSO Designation'].isna()]['Organization Name']
             print(f"Note some club names were not recognized: {failed_match}")
+    
+    if breaking == 4:
+        print('Retuning "updated_df" and "failed_match" after matching names with OASIS in phase 4')
+        return {"updated_df" : updated_df, "failed_match" : failed_match}
     
     #phase 5: meeting number
     Ficomm23234_meeting_number = {updated_df['Ficomm Meeting Date'].unique()[i] : i + 1 for i in range(len(updated_df['Ficomm Meeting Date'].unique()))}
     updated_df['Meeting Number'] = updated_df['Ficomm Meeting Date'].map(Ficomm23234_meeting_number)
 
-    #phase 6: approved only df
+    #phase 6: re-cleaning numbers in "Ficomm Decision" column
+    updated_df['Ficomm Decision'] = updated_df['Ficomm Decision'].apply(lambda s: 'Approved' if s.isdigit() else s)
+    
+    #phase 7: approved only df
     approved = updated_df[updated_df['Amount Allocated'] > 0]
 
-    #phase 7: FR processing
+    #phase 8: FR processing
     # FR_Processor
     
     return approved, updated_df
