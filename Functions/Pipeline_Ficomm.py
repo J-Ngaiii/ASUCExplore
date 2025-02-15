@@ -37,6 +37,14 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
       - This function is designed for agendas in a specific format and may not work for other types of input.
    """
    
+   def _cont_date_chunker(pattern):
+      """Rather than looking for specific start and end keyword, this function just grabs everything from the date to when 'adjournment' appears."""
+      #example input: '{d}[\s\S]*?('
+      #example output: '{d}[\s\S]*?(Contingency Funding[\s\S]*?(?=(?:Finance Rule|Space Reservation|Sponsorship|$)))'
+      
+      pattern = pattern[:-1]
+      return pattern + 'Adjournment'
+   
    def _cont_appender_helper(pattern, start_list, end_list):
       """
       Constructs a regular expression pattern to extract text between specified start and end keywords.
@@ -96,12 +104,27 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
       pattern += '|$)))'
       return pattern
 
+   def motion_processor(club_names, names_and_motions):
+      rv = {}
+      club_set = set(club_names)  # Convert to set for faster lookup
+      curr_club = None
+      for curr in names_and_motions: 
+         if curr in club_set:
+            curr_club = curr
+            rv[curr_club] = [] #to register clubs with no motions
+         else:
+            if curr_club is None:
+               print(f"""WARNING line skip occured with line: {curr}
+               total list is: {names_and_motions}""")
+            else:
+               rv[curr_club].append(curr)
 
+      return rv
 
    if input == "":
       raise Exception('Input text is empty')
    
-   Dates = re.findall(r'(\w+\s\d{1,2}\w*,\s\d{4})', input, re.S)
+   Dates = re.findall(r'(\w+\s\d{1,2}\w*,\s\d{4})', input, re.S) #Phase 0: extract all dates
    Dates_Dict = {}
    #extract contingency chunks
 
@@ -111,17 +134,29 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
    for d in Dates:
       Dates_Dict[d] = None
       initial_pattern = f'{d}[\s\S]*?('
-      final_pattern = _cont_appender_helper(initial_pattern, start, end)
-      match = re.findall(rf'{final_pattern}', input)
+      meeting_pattern = _cont_date_chunker(initial_pattern) #Phase 1: extract chunks for each new meeting session based on date
+      print(f"meeting pattern: {meeting_pattern}")
+      curr_chunk = re.findall(rf'{meeting_pattern}', input)[0]
+      cont_pattern = _cont_appender_helper(initial_pattern, start, end) #Phase 2: extract a match for if there's a contingency funding section
+      print(f"contingency pattern: {cont_pattern}")
+      match = re.findall(rf'{cont_pattern}', curr_chunk)
 
       #if we get a chunk of contingency apps under this meeting date
       if match != []:
          chunk = match[0]
+         print(f"chunk: {chunk}")
 
          #club name pattern works by checking for a digit, (all characters of a club name) in capture group to be returned, then a new line, spaces and the next digit signifiying the start of the first motion
          #NOTE for club names with no motions like "3. No name club <new line with no text>, <new line> 2. " it matches the empty lines till "2."
-         valid_name_chars = '\w\s\-\_\*\&\%\$\#\@\!\(\)\,\'\"'
-         club_names = re.findall(rf'\d+\.\s([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)', chunk) #just matches club names --> list of tuples of club names
+         valid_name_chars = '\w\s\-\_\*\&\%\$\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters?
+         club_name_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)' #first part looks for a date, then excluding motion and seconded, then club names
+         club_names = re.findall(club_name_pattern, chunk) #just matches club names --> list of tuples of club names
+         print(f"club names pattern: {club_name_pattern}")
+         print(f"club names: {club_names}")
+
+         names_and_motions = re.findall(rf'\d+\.\s([{valid_name_chars}]+)\n', chunk)
+         motion_dict = motion_processor(club_names, names_and_motions)
+         print(f"motion dict: {motion_dict}")
          
          #motions pattern handles text of the form (this is the same as what is outputted with chunk): 
          #Contingency Funding (whatever starting keyword, as long as there's no number before it)
@@ -130,44 +165,51 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
          #can handle capturing multiple motioning statements that start with 'Motion ', 'Unanimously ' or 'Senator '
          #can names with dashes or asterisks in between like 'MEMSSA Ad-Hoc Committee *'
          #should in theory be able to handel special characters: -, _, *, &, $, #, @, !, (, ,), <commas>, ", '
-         #NOTE DO NOT TRY TO HANDLE CLUB NAMES WITH PERIODS it bricks club name's abolity to match
+         #NOTE DO NOT TRY TO HANDLE CLUB NAMES WITH PERIODS it bricks club name's ability to match
          #CANNOT handle tabs rather than new lines infront of club names
-         motions = re.findall(rf'\d+\.\s([{valid_name_chars}]+)\n\s*((?:\s+\d+\.\s(?:Motion[^\n]*?|Unanimously[^\n]*?|Senator[^\n]*?)[.!?](?:\s+Seconded[^\n]*?[.!?])?(?:\s+(?:Motion\spassed|Passed\sby)[^\n]*?[.!?])?)+)', chunk) #matches motions IF there's club names --> list of tuples of (club name, motions)
-         if motions == [] and club_names == []:
-            Dates_Dict[d] = 'Section starting and ending with desired keywords detected but no motions or club in valid formatting detected'
-         else: 
-            clubs_with_motions = { t[0]:t[1].strip() for t in motions} # iterates thru the (club name, motions) tuples
-            Entries = {}
-            #must iterate through cuz we want to note down the names of clubs with no motions
-            for name in club_names:
-               
-               if name not in clubs_with_motions.keys():
-                  Entries[name] = 'No record on input doc'
-                  
-               else:
-                  sub_motions = clubs_with_motions[name]
 
-                  #for handling multiple conflicting motions (which shouldn't even happen) we record rejections > temporary tabling > approvals > no input
-                  #when in doubt assume rejection
-                  #check if application was denied or tabled indefinetly
-                  if re.findall(r'(tabled?\sindefinetly)|(tabled?\sindefinitely)|(deny)', sub_motions) != []: 
-                     Entries[name] = 'Denied or Tabled Indefinetly'
-                  #check if the application was tabled
-                  elif re.findall(r'(tabled?\suntil)|(tabled?\sfor)', sub_motions) != []:
-                     Entries[name] = 'Tabled'
-                  #check if application was approved and for how much
-                  elif re.findall(r'[aA]pprove', sub_motions) != []:
-                     dollar_amount = re.findall(r'[aA]pprove\s(?:for\s)?\$?(\d+)', sub_motions)
-                     if dollar_amount != []:
-                        Entries[name] = dollar_amount[0]
-                     else:
-                        Entries[name] = 'Approved but dollar amount not listed'
-                  #check if there was no entry on ficomm's decision for a club (sometimes happens due to record keeping errors)
-                  elif sub_motions == '':
-                     Entries[name] = 'No record on input doc'
+         # motion_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n\s*((?:\s+\d+\.\s(?:Motion[^\n]*?|Unanimously[^\n]*?|Senator[^\n]*?)[.!?](?:\s+Seconded[^\n]*?[.!?])?(?:\s+(?:Motion\spassed|Passed\sby)[^\n]*?[.!?])?)+)'
+
+         # motion_pattern = f'{club_name_pattern}\s*((?:\s+\d+\.\s(?:Motion|Unanimously|Senator)[.!?](?:\s+Seconded[.!?])?(?:\s+(?:Motion\spassed|Passed\sby)?[.!?])?)+)'
+         # motions = re.findall(rf'{motion_pattern}', chunk) #matches motions IF there's club names --> list of tuples of (club name, motions)
+         # print(f"motions pattern: {motion_pattern}")
+         # print(f"motions: {motions}")
+         # if motions == [] and club_names == []:
+         #    Dates_Dict[d] = 'Section starting and ending with desired keywords detected but no motions or club in valid formatting detected' 
+
+         Entries = {}
+         #must iterate through cuz we want to note down the names of clubs with no motions
+         for name in club_names:
+            
+            if motion_dict[name] == []:
+               Entries[name] = 'No record on input doc'
+               
+            else:
+               sub_motions = " ".join(motion_dict[name]) #flattens list of string motions into one massive continuous string containing all motions
+               print(f'sub-motions: {sub_motions}')
+
+               #for handling multiple conflicting motions (which shouldn't even happen) we record rejections > temporary tabling > approvals > no input
+               #when in doubt assume rejection
+               #check if application was denied or tabled indefinetly
+               if re.findall(r'(tabled?\sindefinetly)|(tabled?\sindefinitely)|(deny)', sub_motions) != []: 
+                  Entries[name] = 'Denied or Tabled Indefinetly'
+               #check if the application was tabled
+               elif re.findall(r'(tabled?\suntil)|(tabled?\sfor)', sub_motions) != []:
+                  Entries[name] = 'Tabled'
+               #check if application was approved and for how much
+               elif re.findall(r'[aA]pprove', sub_motions) != []:
+                  dollar_amount = re.findall(r'[aA]pprove\s(?:for\s)?\$?(\d+)', sub_motions)
+                  if dollar_amount != []:
+                     Entries[name] = dollar_amount[0]
                   else:
-                     Entries[name] = 'ERROR could not find conclusive motion'
-            Dates_Dict[d] = Entries
+                     Entries[name] = 'Approved but dollar amount not listed'
+               #check if there was no entry on ficomm's decision for a club (sometimes happens due to record keeping errors)
+               elif sub_motions == '':
+                  Entries[name] = 'No record on input doc'
+               else:
+                  Entries[name] = 'ERROR could not find conclusive motion'
+         Dates_Dict[d] = Entries
+         print(f"Dates Dict so far for {d} is: {Dates_Dict}")
       else: 
          Dates_Dict[d] = 'No section starting and ending with the desired keywords detected in input doc for this date'
          
