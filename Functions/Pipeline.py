@@ -133,8 +133,6 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
 
      - custom_close_match_settings: iterable that unpacks into arg values for close_match_sower
         - Args to fill: matching_col, mismatch_col, fuzz_threshold, filter, nlp_processing, nlp_process_threshold, nlp_threshold
-
-    V2.0: uses motion_processor cont approval 
     """
     #phase 1: pre-processing
     inpt_agenda = cont_approval(inpt_agenda) #process agenda
@@ -144,14 +142,14 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
     inpt_OASIS = oasis_cleaner(inpt_OASIS, True, list(inpt_agenda['Year'].unique()))
 
     if breaking == 1:
-        print('Retuning "inpt_OASIS" and "inpt_agenda" after phase 1 cleaning.')
+        print('Returning "inpt_OASIS" and "inpt_agenda" after phase 1 cleaning.')
         return {"inpt_agenda" : inpt_agenda, "inpt_OASIS": inpt_OASIS}
 
     #phase 2: Initial matching
     df = pd.merge(inpt_OASIS, inpt_agenda, on=['Organization Name', 'Year'], how='right') #initial match
 
     if breaking == 2:
-        print('Retuning "df" after merging "inpt_OASIS" and "inpt_agenda" in phase 2.')
+        print('Returning "df" after merging "inpt_OASIS" and "inpt_agenda" in phase 2.')
         return {"df" : df}
 
     #phase 3: cleaning columns
@@ -165,7 +163,7 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
         df = df[valid_cols]
 
     if breaking == 3:
-        print('Retuning "df" after cleaning columns in phase 3.')
+        print('Returning "df" after cleaning columns in phase 3.')
         return {"df" : df}
 
     #phase 4(O): apply fuzzywuzzy/nlp name matcher for names that are slightly mispelled
@@ -176,7 +174,7 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
             updated_df, _ = close_match_sower(df, inpt_OASIS, 'Organization Name', 'OASIS RSO Designation', 87.9,  sa_filter) #optimal settings based on empirical testing
             
             if breaking == 3.5:
-                print('Retuning "updated_df" immediately after creation in the middle of phase 4.')
+                print('Returning "updated_df" immediately after creation in the middle of phase 4.')
                 return {"updated_df" : updated_df}
 
             updated_df = asuc_processor(updated_df)
@@ -186,7 +184,7 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
             updated_df, _ = close_match_sower(df, inpt_OASIS, *custom_close_match_settings) #optimal settings based on empirical testing
             
             if breaking == 3.5:
-                print('Retuning "updated_df" immediately after creation in the middle of phase 4.')
+                print('Returning "updated_df" immediately after creation in the middle of phase 4.')
                 return {"updated_df" : updated_df}
             
             updated_df = asuc_processor(updated_df)
@@ -194,7 +192,7 @@ def Ficomm_Dataset_Processor(inpt_agenda, inpt_FR, inpt_OASIS, close_matching=Tr
             print(f"Note some club names were not recognized: {failed_match}")
     
     if breaking == 4:
-        print('Retuning "updated_df" and "failed_match" after matching names with OASIS in phase 4')
+        print('Returning "updated_df" and "failed_match" after matching names with OASIS in phase 4')
         return {"updated_df" : updated_df, "failed_match" : failed_match}
     
     #phase 5: meeting number

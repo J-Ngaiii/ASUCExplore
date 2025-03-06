@@ -4,7 +4,19 @@ import pandas as pd
 from ASUCExplore.Functions.Utils import heading_finder
 from ASUCExplore.Functions.Cleaning import is_type
 
-def ABSA_Processor(df, Cats=None, Drop=None, Add=None):
+def _dropper(instance, dictionary):
+    """Removes an instance from either 'Header' or 'No Header'."""
+    if instance in set(dictionary['Header']): #convert to set for amortized O(1) membership checking, yay hashsets
+        dictionary['Header'].remove(instance)
+    elif instance in set(Types['No Header']):
+        dictionary['No Header'].remove(instance)
+    else: 
+        raise ValueError(f"""Drop input {instance} not in any of the subframes set to be selected. Subframes to be selected include:
+                            'Header' subframes: {Types['Header']}
+                            'No Header' subframes: {Types['No Header']}
+                        """)
+
+def ABSA_Processor(df: pd.DataFrame, Cats: dict[str, str] = None, Drop: str = None, Add: str = None) -> pd.DataFrame:
     """Function to take ABSA CSVs and convert into dataframes.
     Cats happens first then Drop then Add, so you can replace the standard setting with dats then drop"""
 
@@ -29,18 +41,6 @@ def ABSA_Processor(df, Cats=None, Drop=None, Add=None):
         Types['No Header'] = Cats['No Header']
 
     if Drop is not None:
-        def _dropper(instance, dictionary):
-            """Removes an instance from either 'Header' or 'No Header'."""
-            if instance in set(dictionary['Header']): #convert to set for amortized O(1) membership checking, yay hashsets
-                dictionary['Header'].remove(instance)
-            elif instance in set(Types['No Header']):
-                dictionary['No Header'].remove(instance)
-            else: 
-                raise ValueError(f"""Drop input {instance} not in any of the subframes set to be selected. Subframes to be selected include:
-                                    'Header' subframes: {Types['Header']}
-                                    'No Header' subframes: {Types['No Header']}
-                                """)
-            
         assert is_type(Drop, str), 'Drop must be a string or iterable of strings specifying column type'
         if isinstance(Drop, str):
             _dropper(Drop, Types)
