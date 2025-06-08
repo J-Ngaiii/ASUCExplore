@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import re
-import spacy
-nlp_model = spacy.load("en_core_web_md")
+# import spacy
+# nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
-from rapidfuzz import fuzz, process
+# from rapidfuzz import fuzz, process
 
 from Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
 
