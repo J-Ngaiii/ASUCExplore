@@ -6,8 +6,8 @@ nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 from rapidfuzz import fuzz, process
 
-from ASUCExplore.Functions.Cleaning import in_df, is_type
-from ASUCExplore.Functions.Utils import column_converter
+from ASUCExplore.Cleaning import in_df, is_type
+from ASUCExplore.Utils import column_converter
 
 def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """

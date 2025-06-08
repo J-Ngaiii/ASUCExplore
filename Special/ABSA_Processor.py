@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from ASUCExplore.Functions.Utils import heading_finder
-from ASUCExplore.Functions.Cleaning import is_type
+# full path should be the way as long as: 
+
+from ASUCExplore.Utils import heading_finder
+from ASUCExplore.Cleaning import is_type
 
 def _dropper(instance, dictionary):
     """Removes an instance from either 'Header' or 'No Header'."""
@@ -17,8 +19,11 @@ def _dropper(instance, dictionary):
                         """)
 
 def ABSA_Processor(df: pd.DataFrame, Cats: dict[str, str] = None, Drop: str = None, Add: str = None) -> pd.DataFrame:
-    """Function to take ABSA CSVs and convert into dataframes.
-    Cats happens first then Drop then Add, so you can replace the standard setting with dats then drop"""
+    """
+    Function to take ABSA CSVs and convert into dataframes.
+    Cleaning Process: Cats happens first then Drop then Add, so you can replace the standard setting with dats then drop
+    Cats (dict) : dictionary with keys 'Header', 'No Header' and 'Final Counts' that lists out the column names that 
+    """
 
     Types = {
         'Header': [
