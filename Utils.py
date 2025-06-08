@@ -212,7 +212,7 @@ def category_updater(df1, df2):
     return cop, indices
 
 def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic = 'exact', 
-                   end_col = None, end = None, nth_end = 0, end_logic = 'exact'):
+                   end_col = None, end = None, nth_end = 0, end_logic = 'exact') -> pd.DataFrame:
     """
     Non-destructively adjusts the DataFrame to start at the correct header. Can also specify where to end the new outputted dataframe.
     Last two arguments 'start_logic' and 'end_logic' allow for 'exact' or 'contains' matching logics for the header value specified in 'start' and the ending value in 'end' we're looking for.
