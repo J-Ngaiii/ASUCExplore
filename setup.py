@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="asucexplore",  # Package name
+    name="ASUCExplore",  # Package name
     version="1.0.0",  # Version of your package
     author="Jonathan Ngai (ASUC)",  # Your name or organization
     author_email="jngai_@berkeley.edu",  # Optional: Your email address
