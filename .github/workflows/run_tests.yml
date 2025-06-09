@@ -41,6 +41,9 @@ jobs:
 
       - name: Debug Check -> List ASUC Explore
         run: pip list | grep ASUCExplore
+    
+      - name: Ensure ASUCExplore src is in PYTHONPATH
+        run: echo "PYTHONPATH=$PWD/src" >> $GITHUB_ENV
       
       - name: Debug Check -> ASUCExplore recognized as importable package
         run: python -c "import ASUCExplore; print('ASUCExplore is recognized!')"
