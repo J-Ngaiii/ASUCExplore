@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from ASUCExplore.Special.Pipeline_Ficomm import sa_filter, close_match_sower, asuc_processor, cont_approval
+from ASUCExplore.Core.Pipeline_Ficomm import sa_filter, close_match_sower, asuc_processor, cont_approval
 
 class TestCloseMatchSower(unittest.TestCase):
 

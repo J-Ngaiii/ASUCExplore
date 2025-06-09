@@ -30,22 +30,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip
 
-      - name: Install Dependencies
+      - name: Install Dependencies and Spacy Model
         run: | 
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m spacy download en_core_web_md
           pip install -e . 
 
-      - name: Debug Check -> Python Path
+      - name: Debug Check -> Disply Installed SpaCy Models
+        run: python -m spacy validate
+
+      - name: Debug Check -> Disply Python Path
         run: python -c "import sys; print(sys.path)"
 
       - name: Debug Check -> List ASUC Explore
         run: pip list | grep ASUCExplore
 
-      - name: Debug Installed Packages
+      - name: Debug Check -> Disply Installed Packages
         run: pip list
     
-      - name: Check that ASUCExplore is recognizeable
+      - name: Debug Check -> Confirm ASUCExplore is recognizeable
         run: python -c "import ASUCExplore; print('ASUCExplore is recognized!')"
       
       - name: Debug Check -> Test Pathing

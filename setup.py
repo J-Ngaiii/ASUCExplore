@@ -9,8 +9,7 @@ setup(
     long_description=open("README.md").read(),  # Optionally include README.md as long description
     long_description_content_type="text/markdown",  # Specify README format
     url="https://github.com/J-Ngaiii/asuc-explore",  # Optional: Link to project repo
-    packages=["src"],  # Let Python treat src as the package, leave this field blank
-    package_dir={"ASUCExplore": "src"},  # Maps the package directly to src
+    packages=find_packages(),  # Automatically seeks out files with innit
     install_requires=[
         "numpy",      # numpy 1.26.4 is required for Python 3.12 compatibility
         "pandas",

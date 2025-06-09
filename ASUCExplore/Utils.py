@@ -6,7 +6,7 @@ import re
 from sklearn.metrics.pairwise import cosine_similarity 
 # from rapidfuzz import fuzz, process
 
-from src.Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
+from ASUCExplore.Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
 
 def column_converter(df, cols, t, datetime_element_looping = False):
     """

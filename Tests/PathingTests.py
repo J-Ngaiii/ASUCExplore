@@ -3,7 +3,7 @@ import sys
 import sys
 print(f"Sys path: {sys.path}")
 
-from ASUCExplore.Special import ABSA_Processor
+from ASUCExplore.Core import ABSA_Processor
 import ASUCExplore.Cleaning as cl
 import ASUCExplore.Utils as ut
 

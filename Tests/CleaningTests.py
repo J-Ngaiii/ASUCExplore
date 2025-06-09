@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from src.Cleaning import cat_migration_checker
+from ASUCExplore.Cleaning import cat_migration_checker
 
 class TestCatMigrationChecker(unittest.TestCase):
     def setUp(self):
