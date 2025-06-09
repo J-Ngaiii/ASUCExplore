@@ -30,7 +30,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip
 
-      - name: Install Dependencies (do not need to install unittest)
+      - name: Install Dependencies
         run: | 
           python -m pip install --upgrade pip
           pip install -r requirements.txt
