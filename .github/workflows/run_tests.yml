@@ -1,0 +1,65 @@
+name: Run all tests
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+  workflow_call:  # Allows other workflows to call this setup
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.8
+
+      - name: Cache Dependencies
+        id: CacheStep
+        uses: actions/cache@v3
+        env: 
+          cache-name: absa-auto-env
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip
+
+      - name: Install Dependencies (including unittest)
+        run: | 
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install unittest
+          pip install -e . 
+
+      - name: Debug Check -> Python Path
+        run: python -c "import sys; print(sys.path)"
+      
+      - name: Debug Check -> ASUCExplore recognized as importable package
+        run: python -c "import ASUCExplore; print('ASUCExplore is recognized!')"
+      
+      - name: Debug Check -> Test Pathing
+        run: python Tests/PathingTests.py
+
+      - name: Run Cleaning.py Tests
+        run: python Tests/CleaningTests.py
+
+      - name: Run UtilsTests.py Tests
+        run: python Tests/UtilsTests.py
+      
+      - name: Run PipelineFicommTests.py Tests
+        run: python Tests/PipelineFicommTests.py
+
+      - name: Run PipelineFRTests.py Tests
+        run: python Tests/PipelineFRTests.py
+
+      - name: Run PipelineOASISTests.py Tests
+        run: python Tests/PipelineOASISTests.py
+
+      - name: Run PipelineTests.py Tests
+        run: python Tests/PipelineTests.py

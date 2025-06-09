@@ -1,4 +1,5 @@
-__pycache__/
-asucexplore.egg-info/
-Special/Pipeline.py
-Special/Pipeline_Ficomm.py
+__pycache__
+asucexplore.egg-info
+.DS_Store
+/src/Special/__pycache__
+/Tests/__pycache__

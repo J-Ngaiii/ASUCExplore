@@ -11,13 +11,13 @@ setup(
     url="https://github.com/J-Ngaiii/asuc-explore",  # Optional: Link to project repo
     packages=find_packages(),  # Automatically find all packages in the project
     install_requires=[
-        "numpy==1.26.4",      # numpy 1.26.4 is required for Python 3.12 compatibility
-        "pandas==2.2.3",
-        "matplotlib==3.9.2",
-        "seaborn==0.13.2",
-        "spacy==3.8.2",
-        "scikit-learn==1.5.1",  # Ensure scikit-learn 1.5.1 is used (note: incompatible with Python 3.12)
-        "rapidfuzz==3.5.2"
+        "numpy",      # numpy 1.26.4 is required for Python 3.12 compatibility
+        "pandas",
+        "matplotlib",
+        "seaborn",
+        "spacy",
+        "scikit-learn",  # Ensure scikit-learn 1.5.1 is used (note: incompatible with Python 3.12)
+        "rapidfuzz"
     ],
-    python_requires='>=3.11,<3.12',
+    python_requires='>=3.11,<3.12', # generally use python 3.11.8
 )

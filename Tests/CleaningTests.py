@@ -4,9 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from Functions.Cleaning import cat_migration_checker
+from src.Cleaning import cat_migration_checker
 
 class TestCatMigrationChecker(unittest.TestCase):
     def setUp(self):
