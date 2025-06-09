@@ -1,5 +1,3 @@
-__pycache__
-asucexplore.egg-info
+__pycache__/
+*.egg-info/
 .DS_Store
-/src/Special/__pycache__
-/Tests/__pycache__
