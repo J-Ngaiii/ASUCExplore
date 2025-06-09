@@ -3,9 +3,9 @@ import sys
 import sys
 print(f"Sys path: {sys.path}")
 
-from src.Special import ABSA_Processor
-import src.Cleaning as cl
-import src.Utils as ut
+from ASUCExplore.Special import ABSA_Processor
+import ASUCExplore.Cleaning as cl
+import ASUCExplore.Utils as ut
 
 print(f"Utils Func: {ut.heading_finder}")
 print(f"Cleaning Func: {cl.get_valid_iter}")

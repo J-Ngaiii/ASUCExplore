@@ -42,8 +42,7 @@ jobs:
       - name: Debug Check -> List ASUC Explore
         run: pip list | grep ASUCExplore
     
-      - name: Debug Check -> ASUCExplore recognized as importable package
-        run: python -c "import ASUCExplore; print('ASUCExplore is recognized!')"
+      
       
       - name: Debug Check -> Test Pathing
         run: python Tests/PathingTests.py

@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.Utils import column_converter, bulk_manual_populater
+from ASUCExplore.Utils import column_converter, bulk_manual_populater
 
 class TestColumnConverter(unittest.TestCase):
     
