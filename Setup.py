@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="asucexplore",  # Package name
     version="1.0.0",  # Version of your package
-    author="Jonathan Ngai (ASUC Senator 2024-2025)",  # Your name or organization
+    author="Jonathan Ngai (ASUC)",  # Your name or organization
     author_email="jngai_@berkeley.edu",  # Optional: Your email address
     description="Tools for exploring and analyzing ASUC financial data.",  # Short description
     long_description=open("README.md").read(),  # Optionally include README.md as long description

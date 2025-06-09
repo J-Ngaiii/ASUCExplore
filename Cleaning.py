@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import re
 
-_valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index)
+_valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index) # dictionary key and value objects are NOT valid iterables because they cannot be indexed into
 
 def get_valid_iter():
     return _valid_iterables
