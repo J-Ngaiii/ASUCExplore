@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from ASUCExplore.Cleaning import in_df
+from src.Cleaning import in_df
 
 def _year_adder(df_list, year_list, year_rank):
         #private
