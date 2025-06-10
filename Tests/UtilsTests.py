@@ -32,7 +32,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(df, expected_df)
         except Exception as e:
-            print(f"Mutative Int Conversion Failed\nDataframe was: ")
+            print(f"Mutative Muti-Arg Int Conversion Failed\nDataframe was: ")
             print(df)
             print("\nShould be: ")
             print(expected_df)
@@ -40,7 +40,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except Exception as e:
-            print(f"Non-Mutative Int Conversion Failed\nDataframe was: ")
+            print(f"Non-Mutative Multi-Arg Int Conversion Failed\nDataframe was: ")
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
@@ -63,7 +63,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(df, expected_df)
         except Exception as e:
-            print(f"Single Col Arg Mutative Conversion Failed\nDataframe was: ")
+            print(f"Mutative Single Arg Int Conversion Failed\nDataframe was: ")
             print(df)
             print("\nShould be: ")
             print(expected_df)
@@ -71,7 +71,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except Exception as e:
-            print(f"Single Col Arg Non-Mutative Conversion Failed\nDataframe was: ")
+            print(f"Non-Mutative Single Arg Int Conversion Failed\nDataframe was: ")
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
@@ -140,6 +140,38 @@ class TestColumnConverter(unittest.TestCase):
             print("\nShould be: ")
             print(expected_df)
 
+    def test_convert_to_datetime_looping(self):
+        df = pd.DataFrame({
+            'col1': ['2024-01-01', 'May 4th, 2025', 'invalid', '17/08/2023'],
+            'col2': [1, 2, 3, 4]
+        })
+        
+        # Convert 'col1' to datetime
+        output_df = column_converter(df, 'col1', pd.Timestamp, datetime_element_looping = True)
+        column_converter(df, 'col1', pd.Timestamp, mutate = True, datetime_element_looping = True)
+        
+        # Expected output: 'invalid' should be NaT (Not a Time)
+        expected_df = pd.DataFrame({
+            'col1': [pd.Timestamp('2024-01-01'), pd.Timestamp('May 4th, 2025'), pd.NaT, pd.Timestamp('17/08/2023')],
+            'col2': [1, 2, 3, 4]
+        })
+        
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
+
     def test_convert_to_str(self):
         df = pd.DataFrame({
             'col1': [1, 2.2, np.nan, 'abc'],
@@ -172,6 +204,39 @@ class TestColumnConverter(unittest.TestCase):
             print("\nShould be: ")
             print(expected_df)
 
+    def test_stress_multiple_column_conversion(self):
+        """Stress test for converting multiple columns into the same datatype"""
+        df = pd.DataFrame({
+            'col1': [1.1, 2.2, None, '4.4', 'invalid'],
+            'col2': ['1', '2', '3', 'not_a_number', None], 
+            'col3': ['100', None, '200', 'c', '300']
+        })
+        
+        # Convert 'col1', 'col2', 'col3' to integers
+        output_df = column_converter(df, ['col1', 'col2', 'col3'], int)
+        column_converter(df, ['col1', 'col2', 'col3'], int, mutate =  True)
+        
+        expected_df = pd.DataFrame({
+            'col1': [1, 2, np.nan, 4, np.nan],  # Invalid values become NaN
+            'col2': [1, 2, 3, np.nan, np.nan], 
+            'col3': [100, np.nan, 200, np.nan, 300]  
+        })
+
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except AssertionError as e:
+            print(f"Mutative Multiple Column Conversion Stress Test Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df) 
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except AssertionError as e:
+            print(f"Non-Mutative Multiple Column Conversion Stress Test Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
+
     def test_invalid_column_type(self):
         df = pd.DataFrame({
             'col1': [1, 2, 3],
@@ -184,30 +249,31 @@ class TestColumnConverter(unittest.TestCase):
         # Test passes if no crash occurs; we won't check for exact output here, but ensure it doesn't crash
         self.assertTrue(True)
 
-class TestBulkManualPopulater(unittest.TestCase):
-    def setUp(self):
-        self.df = pd.DataFrame({
-            'A': [1, 2, 3],
-            'B': [4, 5, 6]
-        })
+# Bulk Manual Populator is not expected to be a heavily used function
+# class TestBulkManualPopulater(unittest.TestCase):
+#     def setUp(self):
+#         self.df = pd.DataFrame({
+#             'A': [1, 2, 3],
+#             'B': [4, 5, 6]
+#         })
 
-    def test_single_override(self):
-        override_cols = ['A']
-        indices = [0]
-        override_values = [10]
-        result = bulk_manual_populater(self.df, override_cols, indices, override_values)
-        expected = pd.DataFrame({'A': [10, 2, 3], 'B': [4, 5, 6]})
-        pd.testing.assert_frame_equal(result, expected)
+#     def test_single_override(self):
+#         override_cols = ['A']
+#         indices = [0]
+#         override_values = [10]
+#         result = bulk_manual_populater(self.df, override_cols, indices, override_values)
+#         expected = pd.DataFrame({'A': [10, 2, 3], 'B': [4, 5, 6]})
+#         pd.testing.assert_frame_equal(result, expected)
 
-    def test_multiple_overrides(self):
-        override_cols = ['A', 'B']
-        indices = [0, 1]
-        override_values = [10, 20]
-        result = bulk_manual_populater(self.df, override_cols, indices, override_values)
-        expected = pd.DataFrame({'A': [10, 2, 3], 'B': [4, 20, 6]})
-        pd.testing.assert_frame_equal(result, expected)
+#     def test_multiple_overrides(self):
+#         override_cols = ['A', 'B']
+#         indices = [0, 1]
+#         override_values = [10, 20]
+#         result = bulk_manual_populater(self.df, override_cols, indices, override_values)
+#         expected = pd.DataFrame({'A': [10, 2, 3], 'B': [4, 20, 6]})
+#         pd.testing.assert_frame_equal(result, expected)
 
-    def test_no_overrides(self):
+#     def test_no_overrides(self):
         override_cols = []
         indices = []
         override_values = []

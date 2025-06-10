@@ -13,6 +13,7 @@ def column_converter(df, cols, t, mutate = False, datetime_element_looping = Fal
     Either mutates or creates a copy of the inputted dataframe 'df' but with columns 'cols' converted into type 't'.
     Can handle conversion to int, float, pd.Timestamp and str. Specify returning a new copy vs mutating with 'mutate' argument.
     None and invalid values use pandas' default handlibg: They're filled with np.nan values. Invalid datetime objects are filled with NaT values. 
+    Converting floats to ints means they get rounded up/down accordingly.
     
     Version 1.0: CANNOT Convert multple columns to different types
     """
@@ -25,7 +26,7 @@ def column_converter(df, cols, t, mutate = False, datetime_element_looping = Fal
         df = df.copy()
 
     if t == int:
-        df[cols] = df[cols].astype(t)
+        df[cols] = df[cols].fillna(np.nan).astype(t)
         
     elif t == float:
         df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
