@@ -4,7 +4,50 @@ import os
 import pandas as pd
 import numpy as np
 
-from ASUCExplore.Cleaning import cat_migration_checker
+from ASUCExplore.Cleaning import *
+
+class TestRudimentary(unittest.TestCase):
+
+    def test_get_valid_iter(self):
+        """Test that get_valid_iter returns the correct iterable types."""
+        expected = (list, tuple, pd.Series, np.ndarray, pd.Index)
+        self.assertEqual(get_valid_iter(), expected)
+
+    def test_is_type_single_value(self):
+        """Test is_type with single value inputs."""
+        self.assertTrue(is_type(5, int))
+        self.assertTrue(is_type("hello", str))
+        self.assertFalse(is_type(5, str))
+
+    def test_is_type_iterables(self):
+        """Test is_type with iterable inputs."""
+        self.assertTrue(is_type([1, 2, 3], int))
+        self.assertTrue(is_type(("hello", 3), (int, str)))
+        self.assertFalse(is_type(["hello", 3], int))
+
+    def test_is_type_invalid_empty_iterables(self):
+        """Test that empty iterables raise ValueErrors."""
+        with self.assertRaises(ValueError):
+            is_type([], int)
+        with self.assertRaises(ValueError):
+            is_type((), int)
+        with self.assertRaises(ValueError):
+            is_type(pd.Series([], dtype=str), str)
+
+    def test_in_df(self):
+        """Test in_df function with different column names and indices."""
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        self.assertTrue(in_df("A", df))
+        self.assertTrue(in_df(1, df))
+        self.assertFalse(in_df("D", df))
+        self.assertFalse(in_df(5, df))  # Out of bounds index
+
+    def test_any_in_df(self):
+        """Test any_in_df function with different column names."""
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        self.assertTrue(any_in_df("A", df))
+        self.assertTrue(any_in_df(["A", "D"], df))  # At least one column exists
+        self.assertFalse(any_in_df(["X", "Y"], df))  # Neither exists
 
 class TestCatMigrationChecker(unittest.TestCase):
     def setUp(self):

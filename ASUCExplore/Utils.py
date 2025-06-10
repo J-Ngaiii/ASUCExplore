@@ -86,12 +86,13 @@ def column_renamer(df, rename):
 def any_drop(df, cols):
     """
     Drops any and all columns instantiated in the 'cols' arg from 'df' arg if they're present."""
+    assert isinstance(df, pd.DataFrame), f"Inputted 'df' should be a pandas dataframe,  but is {type(df)}"
     assert is_type(cols, str), "'cols' must be a string or an iterable (list, tuple, or pd.Series) of strings."
     assert any_in_df(cols, df), f"None of the columns in {cols} are present in the DataFrame."
     if isinstance(cols, str):
         cols_to_drop = [cols] if cols in df.columns else []
     else:
-        cols_to_drop = df.columns[df.columns.isin(cols)]
+        cols_to_drop = [c for c in cols if c in df.columns]
     return df.drop(columns=cols_to_drop)
 
 
