@@ -11,6 +11,7 @@ jobs:
   Setup_and_Debugs: 
     runs-on: ubuntu-latest
     steps:
+      # Setup
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -36,7 +37,8 @@ jobs:
           pip install -r requirements.txt
           python -m spacy download en_core_web_md
           pip install -e . 
-
+      
+      # Debug
       - name: Debug Check -> Disply Installed SpaCy Models
         run: python -m spacy validate
 
