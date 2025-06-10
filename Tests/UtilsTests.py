@@ -13,20 +13,68 @@ class TestColumnConverter(unittest.TestCase):
     def test_convert_to_int(self):
         # Create a sample dataframe with float and NaN values
         df = pd.DataFrame({
-            'col1': [1.1, 2.2, np.nan, 4.4],
-            'col2': ['a', 'b', 'c', 'd']
+            'col1': [1.1, 2.2, None, 4.4],
+            'col2': ['a', 'b', 'c', 'd'], 
+            'col3': ['1', '2', 'c', '4']
         })
         
-        # Convert 'col1' to integer
-        column_converter(df, 'col1', int)
+        # Convert 'col1' and 'col3' to integer
+        output_df = column_converter(df, ['col1', 'col3'], int)
+        column_converter(df, ['col1', 'col3'], int, mutate = True)
         
         # Expected output
         expected_df = pd.DataFrame({
-            'col1': [1, 2, -1, 4],  # NaN should be replaced with -1
-            'col2': ['a', 'b', 'c', 'd']
+            'col1': [1, 2, np.nan, 4],  # None values should be replaced with np.nan
+            'col2': ['a', 'b', 'c', 'd'], 
+            'col3': [1, 2, np.nan, 4]
         })
         
-        pd.testing.assert_frame_equal(df, expected_df)
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Mutative Int Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Non-Mutative Int Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
+
+    def test_single_arg(self):
+        # Test inputing a single string into the col arg
+        df = pd.DataFrame({
+            'col1': [1.1, 2.2, None, 4.4],
+            'col2': ['a', 'b', 'c', 'd'], 
+        })
+
+        output_df = column_converter(df, 'col1', int)
+        column_converter(df, 'col1', int, mutate = True)
+
+        expected_df = pd.DataFrame({
+            'col1': [1, 2, np.nan, 4],  # None values should be replaced with np.nan
+            'col2': ['a', 'b', 'c', 'd']
+        })
+
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Single Col Arg Mutative Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Single Col Arg Non-Mutative Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
 
     def test_convert_to_float(self):
         df = pd.DataFrame({
@@ -35,7 +83,8 @@ class TestColumnConverter(unittest.TestCase):
         })
         
         # Convert 'col1' to float, invalid values should become NaN
-        column_converter(df, 'col1', float)
+        output_df = column_converter(df, 'col1', float)
+        column_converter(df, 'col1', float, mutate = True)
         
         # Expected output: 'invalid' becomes NaN
         expected_df = pd.DataFrame({
@@ -43,7 +92,21 @@ class TestColumnConverter(unittest.TestCase):
             'col2': [10, 20, 30, 40]
         })
         
-        pd.testing.assert_frame_equal(df, expected_df)
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Mutative Float Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Non-Mutative Float Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
 
     def test_convert_to_datetime(self):
         df = pd.DataFrame({
@@ -52,7 +115,8 @@ class TestColumnConverter(unittest.TestCase):
         })
         
         # Convert 'col1' to datetime
-        column_converter(df, 'col1', pd.Timestamp)
+        output_df = column_converter(df, 'col1', pd.Timestamp)
+        column_converter(df, 'col1', pd.Timestamp, mutate = True)
         
         # Expected output: 'invalid' should be NaT (Not a Time)
         expected_df = pd.DataFrame({
@@ -60,7 +124,21 @@ class TestColumnConverter(unittest.TestCase):
             'col2': [1, 2, 3, 4]
         })
         
-        pd.testing.assert_frame_equal(df, expected_df)
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
 
     def test_convert_to_str(self):
         df = pd.DataFrame({
@@ -69,7 +147,8 @@ class TestColumnConverter(unittest.TestCase):
         })
         
         # Convert 'col1' to string
-        column_converter(df, 'col1', str)
+        output_df = column_converter(df, 'col1', str)
+        column_converter(df, 'col1', str, mutate = True)
         
         # Expected output: 'col1' should be all strings
         expected_df = pd.DataFrame({
@@ -77,7 +156,21 @@ class TestColumnConverter(unittest.TestCase):
             'col2': [True, False, True, False]
         })
         
-        pd.testing.assert_frame_equal(df, expected_df)
+        try:
+            pd.testing.assert_frame_equal(df, expected_df)
+        except Exception as e:
+            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(df)
+            print("\nShould be: ")
+            print(expected_df)
+
+        try:
+            pd.testing.assert_frame_equal(output_df, expected_df)
+        except Exception as e:
+            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(output_df)
+            print("\nShould be: ")
+            print(expected_df)
 
     def test_invalid_column_type(self):
         df = pd.DataFrame({

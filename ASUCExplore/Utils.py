@@ -8,10 +8,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from ASUCExplore.Cleaning import is_type, in_df, any_in_df, reverse_academic_year_parser, get_valid_iter
 
-def column_converter(df, cols, t, datetime_element_looping = False):
+def column_converter(df, cols, t, mutate = False, datetime_element_looping = False):
     """
-    Mutates the inputted dataframe 'df' but with columns 'cols' converted into type 't'.
-    Can handle conversion to int, float, pd.Timestamp and str
+    Either mutates or creates a copy of the inputted dataframe 'df' but with columns 'cols' converted into type 't'.
+    Can handle conversion to int, float, pd.Timestamp and str. Specify returning a new copy vs mutating with 'mutate' argument.
+    None and invalid values use pandas' default handlibg: They're filled with np.nan values. Invalid datetime objects are filled with NaT values. 
     
     Version 1.0: CANNOT Convert multple columns to different types
     """
@@ -20,8 +21,11 @@ def column_converter(df, cols, t, datetime_element_looping = False):
     if isinstance(cols, str): # If a single column is provided, convert to list for consistency
         cols = [cols]
     
+    if not mutate:
+        df = df.copy()
+
     if t == int:
-        df[cols] = df[cols].fillna(-1).astype(t)
+        df[cols] = df[cols].astype(t)
         
     elif t == float:
         df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
@@ -30,7 +34,7 @@ def column_converter(df, cols, t, datetime_element_looping = False):
         if not datetime_element_looping:
             for col in cols: 
                 df[col] = pd.to_datetime(df[col], errors='coerce')
-        else: #to handle different tries being formatted differently
+        else: #to handle different entries being formatted differently
             for col in cols: 
                 for index in df[col].index:
                     df.loc[index, col] = pd.to_datetime(df.loc[index, col], errors='coerce')
@@ -43,6 +47,9 @@ def column_converter(df, cols, t, datetime_element_looping = False):
             df[cols] = df[cols].astype(t)
         except Exception as e:
             print(f"Error converting {cols} to {t}: {e}")
+    
+    if not mutate:
+        return df
 
 def column_renamer(df, rename):
         """Column Renaming Unit is for renaiming columns or a df, with custom modes according to certain raw ASUC datasets files expected.
