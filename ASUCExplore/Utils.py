@@ -224,6 +224,7 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     """
     Non-destructively adjusts the DataFrame to start at the correct header. Can also specify where to end the new outputted dataframe.
     Last two arguments 'start_logic' and 'end_logic' allow for 'exact' or 'contains' matching logics for the header value specified in 'start' and the ending value in 'end' we're looking for.
+    TLDR this is a fansy pands loc/iloc wrapper. 
 
     Parameters:
     - df (pd.DataFrame): The input DataFrame.

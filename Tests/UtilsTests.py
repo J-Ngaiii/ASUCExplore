@@ -406,5 +406,42 @@ class TestCategoryUpdater(unittest.TestCase):
         expected_indices = [0, 1, 2]  # Only Org IDs 1, 2, 3 were updated
         self.assertEqual(list(indices_to_check_preserved), expected_indices)
 
+class TestHeadingFinder(unittest.TestCase):
+
+    def setUp(self):
+        # Sample DataFrame for testing
+        self.df = pd.DataFrame({
+            'A': ['X', 'Header1', 'Data1', 'Data2', 'End1', 'End2'],
+            'B': ['Y', 'Header2', 'Data3', 'Data4', 'End3', 'End4']
+        })
+
+    def test_exact_start_and_end(self):
+        result = heading_finder(self.df, start_col='A', start='Header1', end_col='A', end='End1')
+        expected = pd.DataFrame({'Header1': ['Data1', 'Data2']})  # Expected output
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_contains_logic(self):
+        result = heading_finder(self.df, start_col='A', start='Head', start_logic='contains', end_col='A', end='End1')
+        expected = pd.DataFrame({'Header1': ['Data1', 'Data2']})
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_with_shift(self):
+        result = heading_finder(self.df, start_col='A', start='Header1', shift=1, end_col='A', end='End1')
+        expected = pd.DataFrame({'Header1': ['Data2']})
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_multiple_occurrences(self):
+        result = heading_finder(self.df, start_col='A', start='Header1', nth_start=1, end_col='A', end='End2')
+        expected = pd.DataFrame({'Header1': ['Data1', 'Data2', 'End1']})
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_start_not_found(self):
+        with self.assertRaises(ValueError):
+            heading_finder(self.df, start_col='A', start='NonExistentHeader')
+
+    def test_end_not_found(self):
+        with self.assertRaises(ValueError):
+            heading_finder(self.df, start_col='A', start='Header1', end_col='A', end='NonExistentEnd')
+
 if __name__ == '__main__':
     unittest.main()
