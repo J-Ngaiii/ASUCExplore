@@ -36,6 +36,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -44,6 +45,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_single_arg(self):
         # Test inputing a single string into the col arg
@@ -67,6 +69,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -75,6 +78,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_convert_to_float(self):
         df = pd.DataFrame({
@@ -99,6 +103,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -107,6 +112,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_convert_to_datetime(self):
         df = pd.DataFrame({
@@ -131,6 +137,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -139,6 +146,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_convert_to_datetime_looping(self):
         df = pd.DataFrame({
@@ -163,6 +171,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -171,6 +180,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_convert_to_str(self):
         df = pd.DataFrame({
@@ -195,6 +205,7 @@ class TestColumnConverter(unittest.TestCase):
             print(df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
@@ -203,6 +214,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_stress_multiple_column_conversion(self):
         """Stress test for converting multiple columns into the same datatype"""
@@ -229,6 +241,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df) 
+            raise e
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except AssertionError as e:
@@ -236,6 +249,7 @@ class TestColumnConverter(unittest.TestCase):
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
+            raise e
 
     def test_invalid_column_type(self):
         df = pd.DataFrame({
@@ -433,6 +447,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_contains_logic(self):
         result = heading_finder(self.df, start_col='A', start='Head', start_logic='contains', end_col='A', end='End1')
@@ -447,6 +462,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_with_shift(self):
         result = heading_finder(self.df, start_col='A', start='Header1', shift=1, end_col='A', end='End1')
@@ -461,6 +477,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_with_negative_shift(self):
         result = heading_finder(self.df, start_col='A', start='Header1', shift=-1, end_col='A', end='End1')
@@ -475,6 +492,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_multiple_occurrences(self):
         result = heading_finder(self.df_multi, start_col='A', start='Header1', nth_start=1, end_col='A', end='End2')
@@ -489,6 +507,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_start_end_in_diff_cols(self):
         result = heading_finder(self.df_multi, start_col='A', start='Header1', nth_start=1, end_col='B', end='End4')
@@ -503,6 +522,7 @@ class TestHeadingFinder(unittest.TestCase):
             print(result)
             print("\nShould be: ")
             print(expected) 
+            raise e
 
     def test_start_not_found(self):
         with self.assertRaises(ValueError):
