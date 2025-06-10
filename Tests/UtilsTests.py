@@ -415,25 +415,94 @@ class TestHeadingFinder(unittest.TestCase):
             'B': ['Y', 'Header2', 'Data3', 'Data4', 'End3', 'End4']
         })
 
+        self.df_multi = pd.DataFrame({
+            'A': ['X', 'Header1', 'Header1', 'Data1', 'Data2', 'End1', 'End2'],
+            'B': ['Y', 'Header2', 'Header3', 'Data3', 'Data4', 'End3', 'End4']
+        })
+
     def test_exact_start_and_end(self):
         result = heading_finder(self.df, start_col='A', start='Header1', end_col='A', end='End1')
-        expected = pd.DataFrame({'Header1': ['Data1', 'Data2']})  # Expected output
-        pd.testing.assert_frame_equal(result, expected)
+        expected = pd.DataFrame({
+            'Header1': ['Data1', 'Data2'], 
+            'Header2': ['Data3', 'Data4']
+            })  # Expected output
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Exact Matching Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
 
     def test_contains_logic(self):
         result = heading_finder(self.df, start_col='A', start='Head', start_logic='contains', end_col='A', end='End1')
-        expected = pd.DataFrame({'Header1': ['Data1', 'Data2']})
-        pd.testing.assert_frame_equal(result, expected)
+        expected = pd.DataFrame({
+            'Header1': ['Data1', 'Data2'], 
+            'Header2': ['Data3', 'Data4']
+            })
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Contains Matching Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
 
     def test_with_shift(self):
         result = heading_finder(self.df, start_col='A', start='Header1', shift=1, end_col='A', end='End1')
-        expected = pd.DataFrame({'Header1': ['Data2']})
-        pd.testing.assert_frame_equal(result, expected)
+        expected = pd.DataFrame({
+            'Header1': ['Data2'], 
+            'Header2': ['Data4']
+            })
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Shift Logic Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
+
+    def test_with_negative_shift(self):
+        result = heading_finder(self.df, start_col='A', start='Header1', shift=-1, end_col='A', end='End1')
+        expected = pd.DataFrame({
+            'X': ['Header1', 'Data1', 'Data2'], 
+            'Y': ['Header2', 'Data3', 'Data4']
+            })
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Negative Shift Logic Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
 
     def test_multiple_occurrences(self):
-        result = heading_finder(self.df, start_col='A', start='Header1', nth_start=1, end_col='A', end='End2')
-        expected = pd.DataFrame({'Header1': ['Data1', 'Data2', 'End1']})
-        pd.testing.assert_frame_equal(result, expected)
+        result = heading_finder(self.df_multi, start_col='A', start='Header1', nth_start=1, end_col='A', end='End2')
+        expected = pd.DataFrame({
+            'Header1': ['Data1', 'Data2', 'End1'],
+            'Header3': ['Data3', 'Data4', 'End3']
+        })
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Multiple Occurence Test Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
+
+    def test_start_end_in_diff_cols(self):
+        result = heading_finder(self.df_multi, start_col='A', start='Header1', nth_start=1, end_col='B', end='End4')
+        expected = pd.DataFrame({
+            'Header1': ['Data1', 'Data2', 'End1'],
+            'Header3': ['Data3', 'Data4', 'End3']
+        })
+        try: 
+            pd.testing.assert_frame_equal(result, expected)
+        except Exception as e:
+            print(f"Start and End Cols Different Test Failed\nDataframe was: ")
+            print(result)
+            print("\nShould be: ")
+            print(expected) 
 
     def test_start_not_found(self):
         with self.assertRaises(ValueError):
