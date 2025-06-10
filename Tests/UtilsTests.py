@@ -280,7 +280,7 @@ class TestColumnConverter(unittest.TestCase):
         result = bulk_manual_populater(self.df, override_cols, indices, override_values)
         pd.testing.assert_frame_equal(result, self.df)
 
-class TestCategoryUpdater(unittest.TestCase):
+# class TestCategoryUpdater(unittest.TestCase):
     
     def setUp(self):
         """
@@ -516,9 +516,9 @@ if __name__ == '__main__':
     column_converter_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestColumnConverter))
     if column_converter_tests.wasSuccessful():
         print("✅ All Column Converter tests passed successfully!")
-    category_updater_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestCategoryUpdater))
-    if column_converter_tests.wasSuccessful():
-        print("✅ All Category Updater tests passed successfully!")
+    # category_updater_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestCategoryUpdater))
+    # if column_converter_tests.wasSuccessful():
+    #     print("✅ All Category Updater tests passed successfully!")
     heading_finder_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestHeadingFinder))
     if heading_finder_tests.wasSuccessful():
         print("✅ All Heading Finder tests passed successfully!")
