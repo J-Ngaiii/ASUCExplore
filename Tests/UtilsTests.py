@@ -513,4 +513,12 @@ class TestHeadingFinder(unittest.TestCase):
             heading_finder(self.df, start_col='A', start='Header1', end_col='A', end='NonExistentEnd')
 
 if __name__ == '__main__':
-    unittest.main()
+    column_converter_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestColumnConverter))
+    if column_converter_tests.wasSuccessful():
+        print("✅ All Column Converter tests passed successfully!")
+    category_updater_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestCategoryUpdater))
+    if column_converter_tests.wasSuccessful():
+        print("✅ All Category Updater tests passed successfully!")
+    heading_finder_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestHeadingFinder))
+    if heading_finder_tests.wasSuccessful():
+        print("✅ All Heading Finder tests passed successfully!")
