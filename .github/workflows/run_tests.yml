@@ -87,11 +87,13 @@ jobs:
           python -m spacy download en_core_web_md
           pip install -e . 
 
+    # - name: Run Cleaning.py Tests
+    #   run: python Tests/CleaningTests.py
+
       - name: Run UtilsTests.py Tests
         run: python Tests/UtilsTests.py
 
-      # - name: Run Cleaning.py Tests
-      #   run: python Tests/CleaningTests.py
+      
       
   # Test_Core: 
   #   runs-on: ubuntu-latest
