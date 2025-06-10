@@ -2,9 +2,9 @@ name: Run all tests
 
 on:
   workflow_dispatch:  # Allows manual triggering
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_call:  # Allows other workflows to call this setup
 
 jobs:
