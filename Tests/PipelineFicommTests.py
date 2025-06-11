@@ -4,7 +4,9 @@ import os
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
+print(sys.path)
 
 from ASUCExplore.Core.Pipeline_Ficomm import sa_filter, close_match_sower, asuc_processor, cont_approval
 

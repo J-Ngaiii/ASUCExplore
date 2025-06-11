@@ -1,8 +1,10 @@
 README.md
 setup.py
 ASUCExplore/Cleaning.py
+ASUCExplore/Processor.py
 ASUCExplore/Utils.py
 ASUCExplore/__init__.py
+ASUCExplore/test.py
 ASUCExplore.egg-info/PKG-INFO
 ASUCExplore.egg-info/SOURCES.txt
 ASUCExplore.egg-info/dependency_links.txt
