@@ -9,6 +9,16 @@ from rapidfuzz import fuzz, process
 from ASUCExplore.Cleaning import in_df, is_type
 from ASUCExplore.Utils import column_converter
 
+def _process_agenda(input):
+   """
+   input (str): The raw text of the agenda to be processed. Usually a .txt file
+
+   Process
+   - extracts section corresponding to contingency
+   - process reusing old code
+   """
+
+
 def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
    Extracts and organizes data from a given agenda string, sorting it into a dictionary where:

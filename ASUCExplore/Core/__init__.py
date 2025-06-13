@@ -1,5 +1,6 @@
-from .Pipeline_Ficomm import cont_approval, sa_filter, close_match_sower, asuc_processor
-from .Pipeline_FR import FY_Rez_Generator
-from .Pipeline_OASIS import year_adder, year_rank_collision_handler
+from .Agenda_Processor import cont_approval, sa_filter, close_match_sower, asuc_processor
+from .FR_Processor import FY_Rez_Generator
+from .OASIS_Processor import year_adder, year_rank_collision_handler
 from .Pipeline import * 
 from .ABSA_Processor import *
+from .core_legacy import *
