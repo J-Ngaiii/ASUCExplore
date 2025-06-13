@@ -8,9 +8,9 @@ from rapidfuzz import fuzz, process
 
 from ASUCExplore.Utils import column_converter, column_renamer, oasis_cleaner, heading_finder
 from ASUCExplore.Cleaning import is_type, in_df, concatonater, academic_year_parser
-from ASUCExplore.Core.Pipeline_OASIS import year_rank_collision_handler
-from ASUCExplore.Core.Pipeline_Ficomm import cont_approval, close_match_sower, sa_filter, asuc_processor
-from ASUCExplore.Core.Pipeline_FR import FR_Processor
+from ASUCExplore.Core.OASIS_Processor import year_rank_collision_handler
+from ASUCExplore.Core.Agenda_Processor import cont_approval, close_match_sower, sa_filter, asuc_processor
+from ASUCExplore.Core.FR_Processor import FR_Processor
 
 def SU_Cont_Processor(df, str_cols=None, date_cols=None, float_cols=None):
     """

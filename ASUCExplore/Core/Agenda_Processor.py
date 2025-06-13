@@ -54,7 +54,7 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
 
       It is primarily used for processing Ficomm agendas, where sections are delineated by specific keywords such as 'Contingency Funding' and 'Finance Rule'. The generated regex pattern is designed for use in functions like `re.findall()` to extract sections of text between these markers.
 
-      Version 3.0: uses motion_processor
+      Version 3.0: uses _motion_processor
       
       Args:
          pattern (str): The base regular expression pattern to which the start and end keywords will be appended. This serves as the starting point for building the full regex.
@@ -107,7 +107,7 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
       pattern += '|$)))'
       return pattern
 
-   def motion_processor(club_names, names_and_motions):
+   def _motion_processor(club_names, names_and_motions):
       """Takes in a list of club names for a given chunk and a list of club names and motions.
       The list of club names and motions must be arranged such that all motions relevant to a particular club comes after the club name appears in the list."""
       rv = {}
@@ -162,7 +162,7 @@ def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Ru
          # print(f"club names: {club_names}")
 
          names_and_motions = re.findall(rf'\d+\.\s(.+)\n?', chunk) #pattern matches every single line that comes in the format "<digit>.<space><anything>""
-         motion_dict = motion_processor(club_names, names_and_motions)
+         motion_dict = _motion_processor(club_names, names_and_motions)
          # print(f"motion dict: {motion_dict}")
          
          #motions pattern handles text of the form (this is the same as what is outputted with chunk): 
@@ -404,8 +404,10 @@ def close_match_sower(df1, df2, matching_col, mismatch_col, fuzz_threshold, filt
     return copy, could_not_match
     
 def asuc_processor(df):
-   """Checks for any ASUC orgs in a df and upadtes those entries with the 'ASUC' label.
-   Developed cuz ASUC orgs aren't on OASIS so whenever they apply for ficomm funds and their names show up, it shows up as "NA" club type. """
+   """
+   Checks for any ASUC orgs in a df and updates those entries with the 'ASUC' label.
+   Developed cuz ASUC orgs aren't on OASIS so whenever they apply for ficomm funds and their names show up, it shows up as "NA" club type.
+   """
    def asuc_processor_helper(org_name):
       asuc_exec = set(['executive vice president', 'office of the president', 'academic affairs vice president', 'external affairs vice president', 'student advocate']) #executive vice president is unique enough, just president is not
       asuc_chartered = set(['grants and scholarships foundation', 'innovative design', 'superb']) #incomplete: address handling extra characters (eg. grants vs grant)

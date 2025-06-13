@@ -1,6 +1,4 @@
 import sys
-
-import sys
 print(f"Sys path: {sys.path}")
 
 def get_my_python_path():
