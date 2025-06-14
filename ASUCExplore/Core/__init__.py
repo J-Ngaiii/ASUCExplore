@@ -3,5 +3,3 @@ from .FR_Processor import FY_Rez_Generator
 from .OASIS_Processor import year_adder, year_rank_collision_handler
 from .Pipeline import * 
 from .ABSA_Processor import *
-from .core_legacy import *
-from .pipeline_legacy import *
