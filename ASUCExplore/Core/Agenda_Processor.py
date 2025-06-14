@@ -9,15 +9,140 @@ from rapidfuzz import fuzz, process
 from ASUCExplore.Cleaning import in_df, is_type
 from ASUCExplore.Utils import column_converter
 
-def _process_agenda(input):
+def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s'):
+      """
+      Extracts a chunk of text from 'inpt' text based on start and end keywords.
+      starts (list[str]): List of keywords to start the chunk of text we want to extract
+      ends (list[str]): List of keywords to end the chunk of text we want to extract
+      end_prepattern (str): Regex pattern to append before every end keyword
+         - for example meeting agendas are structure 1. Contingency, 2. Sponsorship, etc so if you want the chunk to end at 'Sponsorship' you add in a ending prepattern to catch the '2. '.
+      
+      example pattern to constryct: Contingency\s*([\s\S]*)(?:\d\.\sAdjournment|\d\.\sSponsorship)
+      
+      """
+      assert len(starts) != 0, 'starts is an empty list'
+      assert is_type(starts, str), 'starts is not a list of strings'
+      assert len(ends) != 0, 'ends is an empty list'
+      assert is_type(ends, str), 'ends is not a list of strings'
+
+      assert isinstance(end_prepattern, str), 'end_prepattern is not a string'
+      
+      pattern = ''
+      if len(starts) == 1:
+          pattern += starts[0]
+      else: 
+         for start_keyword in starts[:-1]: 
+            pattern += start_keyword + '|'
+         pattern += starts[-1]
+      
+      pattern += '\s*([\s\S]*)(?:' 
+
+      if len(ends) == 1:
+         pattern += ends[0]
+      else: 
+         for end_keyword in ends[:-1]: 
+            pattern += end_prepattern + end_keyword + '|'
+         pattern += end_prepattern + ends[-1]
+
+      pattern + ')'
+      return pattern
+
+def _motion_processor(club_names, names_and_motions):
+   """Takes in a list of club names for a given chunk and a list of club names and motions.
+   The list of club names and motions must be arranged such that all motions relevant to a particular club comes after the club name appears in the list."""
+   rv = {}
+   club_set = set(club_names)  # Convert to set for faster lookup
+   curr_club = None
+   for curr in names_and_motions: 
+      if curr in club_set:
+         curr_club = curr
+         rv[curr_club] = [] #to register clubs with no motions
+      else:
+         if curr_club is None:
+            print(f"""WARNING line skip occured with line: {curr}
+            total list is: {names_and_motions}""")
+         else:
+            rv[curr_club].append(curr)
+
+   return rv
+
+def _process_agenda(inpt, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship', 'Adjournment'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})'):
    """
+   You have a chunk of text from the document you want to turn into a table and an identifier for that chunk of text (eg. just the Contingency Funding section and the identifeir is the date). 
+   Thus function extracts the chunk and converts it into a tabular format.
+
    input (str): The raw text of the agenda to be processed. Usually a .txt file
-
-   Process
-   - extracts section corresponding to contingency
-   - process reusing old code
+   identifier (str): Regex pattern to extract a certain piece of text from inpt as the identifier for the chunk extracted from inpt
    """
+   date = re.findall(rf"{identifier}", inpt)[0]
+   pattern = _find_chunk_pattern(inpt, start, end)
+   chunk = re.findall(rf"{pattern}", inpt)[0]
 
+   # print(f"chunk: {chunk}")
+
+   #club name pattern works by checking for a digit, (all characters of a club name) in capture group to be returned, then a new line, spaces and the next digit signifiying the start of the first motion
+   #NOTE for club names with no motions like "3. No name club <new line with no text>, <new line> 2. " it matches the empty lines till "2."
+   valid_name_chars = '\w\s\-\_\*\&\%\$\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters?
+   club_name_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)' #first part looks for a date, then excluding motion and seconded, then club names
+   club_names = re.findall(club_name_pattern, chunk) #just matches club names --> list of tuples of club names
+   # print(f"club names pattern: {club_name_pattern}")
+   # print(f"club names: {club_names}")
+
+   names_and_motions = re.findall(rf'\d+\.\s(.+)\n?', chunk) #pattern matches every single line that comes in the format "<digit>.<space><anything>""
+   motion_dict = _motion_processor(club_names, names_and_motions)
+   # print(f"motion dict: {motion_dict}")
+   
+   #motions pattern handles text of the form (this is the same as what is outputted with chunk): 
+   #Contingency Funding (whatever starting keyword, as long as there's no number before it)
+      # <number>. <club name> 
+         #<number>. <Motioning statement> 
+   #can handle capturing multiple motioning statements that start with 'Motion ', 'Unanimously ' or 'Senator '
+   #can names with dashes or asterisks in between like 'MEMSSA Ad-Hoc Committee *'
+   #should in theory be able to handel special characters: -, _, *, &, $, #, @, !, (, ,), <commas>, ", '
+   #NOTE DO NOT TRY TO HANDLE CLUB NAMES WITH PERIODS it bricks club name's ability to match
+   #CANNOT handle tabs rather than new lines infront of club names
+
+   # motion_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n\s*((?:\s+\d+\.\s(?:Motion[^\n]*?|Unanimously[^\n]*?|Senator[^\n]*?)[.!?](?:\s+Seconded[^\n]*?[.!?])?(?:\s+(?:Motion\spassed|Passed\sby)[^\n]*?[.!?])?)+)'
+
+   # motion_pattern = f'{club_name_pattern}\s*((?:\s+\d+\.\s(?:Motion|Unanimously|Senator)[.!?](?:\s+Seconded[.!?])?(?:\s+(?:Motion\spassed|Passed\sby)?[.!?])?)+)'
+   # motions = re.findall(rf'{motion_pattern}', chunk) #matches motions IF there's club names --> list of tuples of (club name, motions)
+   # print(f"motions pattern: {motion_pattern}")
+   # print(f"motions: {motions}")
+   # if motions == [] and club_names == []:
+   #    Dates_Dict[d] = 'Section starting and ending with desired keywords detected but no motions or club in valid formatting detected' 
+
+   Entries = {}
+   #must iterate through cuz we want to note down the names of clubs with no motions
+   for name in club_names:
+      
+      if motion_dict[name] == []:
+         Entries[name] = 'No record on input doc'
+         
+      else:
+         sub_motions = " ".join(motion_dict[name]) #flattens list of string motions into one massive continuous string containing all motions
+         # print(f'sub-motions: {sub_motions}')
+
+         #for handling multiple conflicting motions (which shouldn't even happen) we record rejections > temporary tabling > approvals > no input
+         #when in doubt assume rejection
+         #check if application was denied or tabled indefinetly
+         if re.findall(r'(tabled?\sindefinetly)|(tabled?\sindefinitely)|(deny)', sub_motions) != []: 
+            Entries[name] = 'Denied or Tabled Indefinetly'
+         #check if the application was tabled
+         elif re.findall(r'(tabled?\suntil)|(tabled?\sfor)', sub_motions) != []:
+            Entries[name] = 'Tabled'
+         #check if application was approved and for how much
+         elif re.findall(r'[aA]pprove', sub_motions) != []:
+            dollar_amount = re.findall(r'[aA]pprove\s(?:for\s)?\$?(\d+)', sub_motions)
+            if dollar_amount != []:
+               Entries[name] = dollar_amount[0]
+            else:
+               Entries[name] = 'Approved but dollar amount not listed'
+         #check if there was no entry on ficomm's decision for a club (sometimes happens due to record keeping errors)
+         elif sub_motions == '':
+            Entries[name] = 'No record on input doc'
+         else:
+            Entries[name] = 'ERROR could not find conclusive motion'
+   
 
 def _cont_approval_helper(input, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship']):
    """
