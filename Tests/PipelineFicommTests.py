@@ -8,7 +8,7 @@ import numpy as np
 import sys
 print(sys.path)
 
-from ASUCExplore.Core.Pipeline_Ficomm import sa_filter, close_match_sower, asuc_processor, cont_approval
+from ASUCExplore.Core.Agenda_Processor import sa_filter, close_match_sower, asuc_processor, cont_approval
 
 class TestCloseMatchSower(unittest.TestCase):
 
