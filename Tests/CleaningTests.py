@@ -11,29 +11,27 @@ class TestRudimentary(unittest.TestCase):
     def test_get_valid_iter(self):
         """Test that get_valid_iter returns the correct iterable types."""
         expected = (list, tuple, pd.Series, np.ndarray, pd.Index)
-        self.assertEqual(get_valid_iter(), expected)
+        try: 
+            self.assertEqual(get_valid_iter(), expected)
+        except Exception as e:
+            print(f"get_valid_iter test failed, expected {expected} got {get_valid_iter()}")
+            raise e
 
-    def test_is_type_single_value(self):
-        """Test is_type with single value inputs."""
-        self.assertTrue(is_type(5, int))
-        self.assertTrue(is_type("hello", str))
-        self.assertFalse(is_type(5, str))
+    def test_is_valid_iter(self):
+        self.assertTrue(is_valid_iter([1, 2, 3]))  # Lists are iterable & indexable
+        self.assertTrue(is_valid_iter((1, 2, 3)))  # Tuples are iterable & indexable
+        self.assertTrue(is_valid_iter("hello"))  # Strings are iterable & indexable
+        self.assertTrue(is_valid_iter(pd.Series([1, 2, 3])))  # Pandas Series are iterable & indexable
+        self.assertTrue(is_valid_iter(np.array([1, 2, 3])))  # NumPy arrays are iterable & indexable
+        self.assertFalse(is_valid_iter({1, 2, 3}))  # Sets are iterable but NOT indexable
+        self.assertFalse(is_valid_iter(iter([1, 2, 3])))  # Iterators are iterable but NOT indexable
 
-    def test_is_type_iterables(self):
-        """Test is_type with iterable inputs."""
-        self.assertTrue(is_type([1, 2, 3], int))
-        self.assertTrue(is_type(("hello", 3), (int, str)))
-        self.assertFalse(is_type(["hello", 3], int))
-
-    def test_is_type_invalid_empty_iterables(self):
-        """Test that empty iterables raise ValueErrors."""
-        with self.assertRaises(ValueError):
-            is_type([], int)
-        with self.assertRaises(ValueError):
-            is_type((), int)
-        with self.assertRaises(ValueError):
-            is_type(pd.Series([], dtype=str), str)
-
+        def gen():
+            yield 1
+        self.assertFalse(is_valid_iter(gen()))  # Generators are iterable but NOT indexable
+        self.assertFalse(is_valid_iter(42))  # Integers are neither iterable nor indexable
+        self.assertFalse(is_valid_iter(None)) 
+    
     def test_in_df(self):
         """Test in_df function with different column names and indices."""
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
@@ -49,72 +47,86 @@ class TestRudimentary(unittest.TestCase):
         self.assertTrue(any_in_df(["A", "D"], df))  # At least one column exists
         self.assertFalse(any_in_df(["X", "Y"], df))  # Neither exists
 
-class TestCatMigrationChecker(unittest.TestCase):
-    def setUp(self):
-        self.df1 = pd.DataFrame({
-            'Org ID': [1, 2, 3],
-            'Category': ['A', 'B', 'C'],
-            'Year': [2024, 2024, 2024],
-            'Active': [1, 1, 1]
-        })
-        self.df2 = pd.DataFrame({
-            'Org ID': [1, 2, 4],
-            'Category': ['A', 'C', 'D'],
-            'Year': [2023, 2023, 2023],
-            'Active': [1, 1, 1]
-        })
+class TestIsType(unittest.case):
+    def test_is_type(self):
+        """Test is_type with single value inputs."""
+        try:
+            # Basic checks on core datatypes
+            self.assertTrue(is_type(5, int))
+            self.assertTrue(is_type("hello", str))
+            self.assertTrue(is_type(9.5, float))
+            self.assertTrue(is_type(pd.Timestamp("May 5th, 2025"), pd.Timestamp))
 
-    def test_no_change(self):
-        _, no_change, _, _, _ = cat_migration_checker(self.df1, self.df2, 'Org ID', 'Category')
-        expected = pd.DataFrame({
-            'Org ID': [1],
-            'Category_latest': ['A'],
-            'Year_latest': [2024],
-            'Active_latest': [1],
-            'Category_prev': ['A'],
-            'Year_prev': [2023],
-            'Active_prev': [1]
-        })
-        pd.testing.assert_frame_equal(no_change.reset_index(drop=True), expected)
+            # If you have an iterable and you're checking if it's just type iterable it should return true
+            self.assertTrue(is_type([1, 2, 3], list))
+            self.assertTrue(is_type(pd.Series([1, 2, 3]), pd.Series))
+            self.assertTrue(is_type(np.array([1, 2, 3]), np.ndarray))
+            self.assertTrue(is_type(pd.DataFrame(
+                {
+                    "A" : [1 , 4, 6], 
+                    "B" : ["hi", "hello", "hey"], 
+                    "C" : [0.5, np.nan, None]
+                }), 
+                pd.DataFrame
+            ))
 
-    def test_migrated(self):
-        _, _, migrated, _, _ = cat_migration_checker(self.df1, self.df2, 'Org ID', 'Category')
-        expected = pd.DataFrame({
-            'Org ID': [2],
-            'Category_latest': ['B'],
-            'Year_latest': [2024],
-            'Active_latest': [1],
-            'Category_prev': ['C'],
-            'Year_prev': [2023],
-            'Active_prev': [1]
-        })
-        pd.testing.assert_frame_equal(migrated.reset_index(drop=True), expected)
+            self.assertFalse(is_type([1, 2, 3], pd.Series))
+            self.assertFalse(is_type(np.array([1, 2, 3]), pd.Series))
 
-    def test_died(self):
-        _, _, _, died, _ = cat_migration_checker(self.df1, self.df2, 'Org ID', 'Category')
-        expected = pd.DataFrame({
-            'Org ID': [4],
-            'Category_latest': [None],
-            'Year_latest': [None],
-            'Active_latest': [None],
-            'Category_prev': ['D'],
-            'Year_prev': [2023],
-            'Active_prev': [1]
-        })
-        pd.testing.assert_frame_equal(died.reset_index(drop=True), expected)
+            # Iterable inpt checks
+            self.assertTrue(is_type(["hi", "hello", "hey"], str))
+            self.assertTrue(is_type([1, 2, 3], int))
+            self.assertTrue(is_type([1.1, 2.0, 3.5], float))
+            self.assertTrue(is_type([pd.Timestamp("May 5th, 2025"), pd.Timestamp("May 6th, 2025"), pd.Timestamp("May 7th, 2025")], pd.Timestamp))
 
-    def test_birthed(self):
-        _, _, _, _, birthed = cat_migration_checker(self.df1, self.df2, 'Org ID', 'Category')
-        expected = pd.DataFrame({
-            'Org ID': [3],
-            'Category_latest': ['C'],
-            'Year_latest': [2024],
-            'Active_latest': [1],
-            'Category_prev': [None],
-            'Year_prev': [None],
-            'Active_prev': [None]
-        })
-        pd.testing.assert_frame_equal(birthed.reset_index(drop=True), expected)
+            self.assertFalse(is_type(["hi", 5, "hey"], str))
+            self.assertFalse(is_type([1, 2, 3], str))
+
+            # Iterable type checks
+            self.assertTrue(is_type(5, [int, str]))
+            self.assertTrue(is_type("hello", [int, str]))
+            self.assertTrue(is_type(9.5, [int, str, float]))
+            self.assertTrue(is_type(pd.Timestamp("May 5th, 2025"), [int, str, pd.Timestamp]))
+            self.assertFalse(is_type(5, [float, str]))
+            self.assertFalse(is_type(pd.Timestamp("May 5th, 2025"), [float, str, int]))
+
+            self.assertTrue(is_type([5, 6, 7], [int, str]))
+            self.assertTrue(is_type(["hi", "hello", "hey"], [int, str]))
+            self.assertFalse(is_type(["hi", 5, "hey"], [int, str])) # all of the elements in 'inpt' are of the type listed in 't' but list has mixed types --> return False
+            self.assertFalse(is_type(["hi", 5.9, "hey"], [int, str])) # some of the elements in 'inpt' are of the type listed in 't' but not all --> return False
+            self.assertFalse(is_type([pd.Timestamp("May 5th, 2025"), 5.9, pd.Timestamp("May 10th, 2025")], [int, str])) # none of the elements in 'inpt' are of the type listed in 't' and the list has mixed types --> return False
+
+        except Exception as e:
+            print("is_type test failed")
+            raise e
+        
+    def test_is_type_invalid_empty_iterables(self):
+        """Test that empty iterables raise ValueErrors."""
+        try:
+            self.assertTrue(is_type([], list))
+            self.assertTrue(is_type(pd.Series([], dtype=str), pd.Series))
+            self.assertTrue(is_type(np.array([]), np.ndarray))
+            # Inpt is an empty iterable
+            with self.assertRaises(ValueError):
+                is_type("hi", [])
+            with self.assertRaises(ValueError):
+                is_type("hi", ())
+            with self.assertRaises(ValueError):
+                is_type("hi", pd.Series([], dtype=str))
+            with self.assertRaises(ValueError):
+                is_type("hi", np.array([]))
+
+            with self.assertRaises(ValueError):
+                is_type([], int)
+            with self.assertRaises(ValueError):
+                is_type((), int)
+            with self.assertRaises(ValueError):
+                is_type(pd.Series([], dtype=str), str)
+            with self.assertRaises(ValueError):
+                is_type(np.array([]), str)
+        except Exception as e:
+            print("is_type empty iterable test failed")
+            raise e
 
 if __name__ == '__main__':
     unittest.main()

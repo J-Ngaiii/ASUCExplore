@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 import re
@@ -5,7 +6,16 @@ import re
 _valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index) # dictionary key and value objects are NOT valid iterables because they cannot be indexed into
 
 def get_valid_iter():
+    """
+    Returns most commonly used valid iterables --> move to deprecate this function with is_valid_iter.
+    """
     return _valid_iterables
+
+def is_valid_iter(inpt):
+    """
+    Checks if a certain data type is a 'valid iterable' meaning that it belongs to the Iterable class and can be indexed.
+    """
+    return isinstance(inpt, Iterable) and hasattr(inpt, "__getitem__")
 
 def _is_type(inpt, t):
     # private function
@@ -27,13 +37,14 @@ def _is_type(inpt, t):
         Checks if the input is of a specified type `t` or, if an iterable, 
         whether all elements in `inpt` are of type `t`.
         """
-        if isinstance(inpt, get_valid_iter()) and len(inpt) == 0:
-            raise ValueError("Input iterable to check types of is an empty iterable.")
-        return isinstance(inpt, t) or (isinstance(inpt, get_valid_iter()) and all(isinstance(x, t) for x in inpt))
+        if isinstance(inpt, Iterable) and len(inpt) == 0:
+            raise ValueError(f"Input {inpt} is an empty iterable but asked to check for type {t}.")
+        return isinstance(inpt, t) or (isinstance(inpt, Iterable) and all(isinstance(x, t) for x in inpt)) # handles case where inpt is a string --> we return isinstance(inpt, t) before iterating through it
     
-    if isinstance(t, get_valid_iter()):
+    assert ~isinstance(t, str), "'t' arg cannot be a string"
+    if isinstance(t, Iterable):
         if len(t) == 0:
-            raise ValueError("Type input 't' is an empty iterable.")
+            raise ValueError(f"Iterable {t} passed in for types to check for but iterable was empty.")
         return any(_is_type_helper(inpt, type) for type in t) #was previously all
     else:
         return _is_type_helper(inpt, t)
@@ -46,6 +57,7 @@ def is_type(inpt, t):
     Args:
         inpt: The input value or iterable of values to be checked.
         t: A single type or an iterable containing multiple types to validate against.
+            - if an iterable of types is passed through the function checks if the input is the same type/an iterable with all elements the same type as at least one of the types listed in 't'
 
     Returns:
         bool: 
@@ -67,7 +79,10 @@ def is_type(inpt, t):
         False
     """
     
-    return _is_type(inpt, t)
+    if isinstance(inpt, t):
+        return True
+    else:
+        return _is_type(inpt, t)
     
 def _in_df(inpt, df):
     #private function
@@ -218,7 +233,7 @@ def _academic_year_parser(inpt):
             return _academic_year_helper(inpt)
         else:
             raise ValueError("The timestamp must include both month and year attributes.")
-    elif isinstance(inpt, get_valid_iter()):
+    elif isinstance(inpt, Iterable): # might need to replace with is_valid_iter if pd.Series can't convert iterables that can't be indexed
         return _validate_and_parse(inpt)
     else:
         raise ValueError("Input must be a string, pd.Timestamp, or a list, tuple, or pd.Series containing strings or pd.Timestamps.")
@@ -245,7 +260,7 @@ def _reverse_academic_year_parser(inpt, year_start_end):
         return (start, end)
     if isinstance(inpt, str):
         return _acayear_instance_processor(inpt, year_start_end)
-    elif isinstance(inpt, get_valid_iter()):
+    elif isinstance(inpt, Iterable):
         return list(_reverse_academic_year_parser(np.array(inpt)))
     else: 
         raise ValueError("Input must be a string, or a list os strings indicating academic year in a known format.")

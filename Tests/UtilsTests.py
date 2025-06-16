@@ -569,6 +569,9 @@ if __name__ == '__main__':
     column_converter_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestColumnConverter))
     if column_converter_tests.wasSuccessful():
         print("✅ All Column Converter tests passed successfully!")
+    any_drop_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestAnyDrop))
+    if any_drop_tests.wasSuccessful():
+        print("✅ All Any Drop function tests passed successfully!")
     # bulk_manual_populator_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestBulkManualPopulater))
     # if bulk_manual_populator_tests.wasSuccessful():
     #     print("✅ All Bulk Manual Populator tests passed successfully!")
