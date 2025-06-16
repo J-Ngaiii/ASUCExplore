@@ -1,4 +1,7 @@
 import pandas as pd
+import numpy as np
+from collections.abc import Iterable
+from ASUCExplore.Cleaning import *
 
 _valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index) # dictionary key and value objects are NOT valid iterables because they cannot be indexed into
 

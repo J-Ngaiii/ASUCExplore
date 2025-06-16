@@ -1,7 +1,5 @@
 from collections.abc import Iterable
-import numpy as np
 import pandas as pd
-import re
 
 def is_valid_iter(inpt, exclude = None):
     """
