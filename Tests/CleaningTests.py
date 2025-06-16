@@ -47,7 +47,7 @@ class TestRudimentary(unittest.TestCase):
         self.assertTrue(any_in_df(["A", "D"], df))  # At least one column exists
         self.assertFalse(any_in_df(["X", "Y"], df))  # Neither exists
 
-class TestIsType(unittest.case):
+class TestIsType(unittest.TestCase):
     def test_is_type(self):
         """Test is_type with single value inputs."""
         try:
@@ -129,4 +129,9 @@ class TestIsType(unittest.case):
             raise e
 
 if __name__ == '__main__':
-    unittest.main()
+    rudimentary_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestRudimentary))
+    if rudimentary_tests.wasSuccessful():
+        print("✅ All get_valid_iter and is_valid_iter tests passed successfully!")
+    is_type_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestIsType))
+    if is_type_tests.wasSuccessful():
+        print("✅ All is_type tests passed successfully!")
