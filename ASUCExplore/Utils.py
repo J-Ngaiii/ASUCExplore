@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
-import re
+from collections.abc import Iterable
 # import spacy
 # nlp_model = spacy.load("en_core_web_md")
 from sklearn.metrics.pairwise import cosine_similarity 
 # from rapidfuzz import fuzz, process
 
-from ASUCExplore.Legacy import reverse_academic_year_parser, get_valid_iter
 from ASUCExplore.Cleaning import is_type, in_df, any_in_df, is_valid_iter
 
 def column_converter(df, cols, t, mutate = False, datetime_element_looping = False):
@@ -154,14 +153,38 @@ def oasis_cleaner(OASIS_master, approved_orgs_only=True, year=None, club_type=No
         OASISCleaned = any_drop(OASISCleaned, standard_drop_cols)
     return OASISCleaned
 
-def sucont_cleaner(df, year):
-    """Version 1.0: Just handles cleaning for years"""
-    assert ('Date' in df.columns) and is_type(df['Date'], pd.Timestamp), 'df must have "Date" column that contains only pd.Timestamp objects'
+# def sucont_cleaner(df, year):
+#     """Version 1.0: Just handles cleaning for years"""
+#     assert ('Date' in df.columns) and is_type(df['Date'], pd.Timestamp), 'df must have "Date" column that contains only pd.Timestamp objects'
     
-    copy = df.copy()
-    year_range = reverse_academic_year_parser(year)
-    mask = (copy['Date'] >= year_range[0]) & (copy['Date'] <= year_range[1])
-    return pd.DataFrame(copy[mask])
+#     copy = df.copy()
+#     year_range = reverse_academic_year_parser(year)
+#     mask = (copy['Date'] >= year_range[0]) & (copy['Date'] <= year_range[1])
+#     return pd.DataFrame(copy[mask])
+
+def _get_loc_wrapper(df, index_iter, elem=None):
+        """returns numerical index or list of numerical indices corresponding to a non-numerical index or list of non-numerical indices
+        index_iter: the instance or list of non-numerical indices to be converted into numerical integer indices"""
+        
+        if isinstance(index_iter, Iterable) and not isinstance(index_iter, (str, bytes)):
+            assert all(index_iter.isin(df.index)), f"Not all entries in 'index_iter' under 'heading_finder' > '_get_loc_wrapper' are found in inputted df.index : {df.index}"
+        
+        if isinstance(index_iter, int):
+            return df.index.get_loc(index_iter)
+        else: 
+            index_iter = pd.Series(index_iter)
+            try:
+                print(f"get col index itter: {index_iter}")
+                indices = pd.Series(index_iter).apply(lambda x: df.index.get_loc(x)).sort_values()
+                if indices.empty:
+                    raise ValueError('_get_loc_wrapper indices negative')
+                if elem is None: 
+                    return indices
+                else: 
+                    assert is_type(elem, int), "Inputted 'elem' arg must be int or list of int specifyig indices to extract."
+                    return indices[elem]
+            except Exception as e:
+                raise e
 
 def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic = 'exact', 
                    end_col = None, end = None, nth_end = 0, end_logic = 'exact') -> pd.DataFrame:
@@ -190,31 +213,6 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     Returns:
     - pd.DataFrame: The adjusted DataFrame starting from the located header and ending at the specified end.
     """
-    
-    def _get_loc_wrapper(df, index_iter, elem=None):
-        """returns numerical index or list of numerical indices corresponding to a non-numerical index or list of non-numerical indices
-        index_iter: the instance or list of non-numerical indices to be converted into numerical integer indices"""
-        
-        if isinstance(index_iter, get_valid_iter()):
-            assert all(index_iter.isin(df.index)), f"Not all entries in 'index_iter' under 'heading_finder' > '_get_loc_wrapper' are found in inputted df.index : {df.index}"
-        
-        if isinstance(index_iter, int):
-            return df.index.get_loc(index_iter)
-        else: 
-            index_iter = pd.Series(index_iter)
-            try:
-                print(f"get col index itter: {index_iter}")
-                indices = pd.Series(index_iter).apply(lambda x: df.index.get_loc(x)).sort_values()
-                if indices.empty:
-                    raise ValueError('_get_loc_wrapper indices negative')
-                if elem is None: 
-                    return indices
-                else: 
-                    assert is_type(elem, int), "Inputted 'elem' arg must be int or list of int specifyig indices to extract."
-                    return indices[elem]
-            except Exception as e:
-                raise e
-
     assert isinstance(start_col, str) or isinstance(start_col, int), "'start_col' must be index of column or name of column."
     assert in_df(start_col, df), 'Given start_col is not in the given df.'
 
@@ -258,7 +256,7 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
                 return df.iloc[:end]
             raise ValueError("Ending index exceeds the remaining DataFrame length.")
 
-        elif isinstance(end, get_valid_iter()): # if 'end' is a iterable containing values to end by we want to iterate through it
+        elif isinstance(end, Iterable) and not isinstance(end, (str, bytes)): # if 'end' is a iterable containing values to end by we want to iterate through it
             pattern = '|'.join(map(str, end))
             if end_logic == 'exact':
                 end_matches = df[df.iloc[:, end_col_index].isin(end)].index
@@ -287,6 +285,7 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
             rv_header = df.iloc[0,:]
             rv = rv[1:]
             rv.columns = rv_header
+            rv = rv.reset_index(drop=True)
             return rv
         raise ValueError(f"End value '{end}' not found in column '{end_col}'.")
 
@@ -294,4 +293,5 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     rv_header = df.iloc[0,:]
     rv = rv[1:]
     rv.columns = rv_header
-    return df
+    rv = rv.reset_index(drop=True)
+    return rv

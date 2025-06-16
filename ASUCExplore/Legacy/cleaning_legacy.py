@@ -24,6 +24,8 @@ def concatonater(input_df, base_df, sort_cols=None):
     
     return output
 
+# academic year pareser functions are used mostly for cleaning SU Contingency or other datasets where we want to restrict the time frame. 
+# In the future however, the hope is that we can just use BigQuery to query the relevant timeframe from a larger dataset rather than having to automatically clean out a specific dataset
 def _academic_year_parser(inpt):
     #private
     def _academic_year_helper(timestamp):
