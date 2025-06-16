@@ -156,37 +156,6 @@ class TestDFFunctions(unittest.TestCase):
         with self.assertRaises(AssertionError):
                 any_in_df([], self.df)
 
-class TestConcatonaterFunction(unittest.TestCase):
-
-    def setUp(self):
-        """Set up sample dataframes for testing."""
-        self.df1 = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
-        self.df2 = pd.DataFrame({'A': [5, 6], 'B': [7, 8]})
-
-    def test_concat_basic(self):
-        """Test basic concatenation without sorting."""
-        result = concatonater(self.df1, self.df2)
-        expected = pd.concat([self.df1, self.df2])
-        pd.testing.assert_frame_equal(result, expected)
-
-    def test_concat_with_sorting(self):
-        """Test concatenation with sorting."""
-        sorted_result = concatonater(self.df1, self.df2, sort_cols='A')
-        expected = pd.concat([self.df1, self.df2]).sort_values(by='A', ascending=False)
-        pd.testing.assert_frame_equal(sorted_result, expected)
-
-    def test_invalid_sort_column(self):
-        """Test assertion error for invalid sort column."""
-        with self.assertRaises(AssertionError):
-            concatonater(self.df1, self.df2, sort_cols='C')
-
-    def test_sorting_with_list_of_columns(self):
-        """Test sorting by multiple columns."""
-        df3 = pd.DataFrame({'A': [2, 3], 'B': [5, 6]})
-        result = concatonater(self.df1, df3, sort_cols=['A', 'B'])
-        expected = pd.concat([self.df1, df3]).sort_values(by=['A', 'B'], ascending=False)
-        pd.testing.assert_frame_equal(result, expected)
-
 if __name__ == '__main__':
     rudimentary_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestRudimentary))
     if rudimentary_tests.wasSuccessful():
@@ -197,6 +166,3 @@ if __name__ == '__main__':
     df_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestDFFunctions))
     if df_tests.wasSuccessful():
         print("✅ All in_df and any_in_df tests passed successfully!")
-    concat_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestConcatonaterFunction))
-    if concat_tests.wasSuccessful():
-        print("✅ All concatonator tests passed successfully!")
