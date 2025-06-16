@@ -3,14 +3,6 @@ import numpy as np
 import pandas as pd
 import re
 
-_valid_iterables = (list, tuple, pd.Series, np.ndarray, pd.Index) # dictionary key and value objects are NOT valid iterables because they cannot be indexed into
-
-def get_valid_iter():
-    """
-    Returns most commonly used valid iterables --> move to deprecate this function with is_valid_iter.
-    """
-    return _valid_iterables
-
 def is_valid_iter(inpt, exclude = None):
     """
     Checks if a certain data type is a 'valid iterable' meaning that it belongs to the Iterable class and can be indexed.
