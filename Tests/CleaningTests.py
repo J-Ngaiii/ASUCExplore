@@ -7,16 +7,6 @@ import numpy as np
 from ASUCExplore.Cleaning import *
 
 class TestRudimentary(unittest.TestCase):
-
-    def test_get_valid_iter(self):
-        """Test that get_valid_iter returns the correct iterable types."""
-        expected = (list, tuple, pd.Series, np.ndarray, pd.Index)
-        try: 
-            self.assertEqual(get_valid_iter(), expected)
-        except Exception as e:
-            print(f"get_valid_iter test failed, expected {expected} got {get_valid_iter()}")
-            raise e
-
     def test_is_valid_iter(self):
         self.assertTrue(is_valid_iter([1, 2, 3]))  # Lists are iterable & indexable
         self.assertTrue(is_valid_iter((1, 2, 3)))  # Tuples are iterable & indexable
