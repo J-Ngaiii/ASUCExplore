@@ -1,6 +1,6 @@
 import unittest
 import sys
-import os
+from io import StringIO
 import pandas as pd
 import numpy as np
 
@@ -31,23 +31,16 @@ class TestRudimentary(unittest.TestCase):
         self.assertFalse(is_valid_iter(gen()))  # Generators are iterable but NOT indexable
         self.assertFalse(is_valid_iter(42))  # Integers are neither iterable nor indexable
         self.assertFalse(is_valid_iter(None)) 
-    
-    def test_in_df(self):
-        """Test in_df function with different column names and indices."""
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        self.assertTrue(in_df("A", df))
-        self.assertTrue(in_df(1, df))
-        self.assertFalse(in_df("D", df))
-        self.assertFalse(in_df(5, df))  # Out of bounds index
-
-    def test_any_in_df(self):
-        """Test any_in_df function with different column names."""
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        self.assertTrue(any_in_df("A", df))
-        self.assertTrue(any_in_df(["A", "D"], df))  # At least one column exists
-        self.assertFalse(any_in_df(["X", "Y"], df))  # Neither exists
 
 class TestIsType(unittest.TestCase):
+    def capture_output(self, func, *args, **kwargs):
+            """Helper function to capture printed output."""
+            output = StringIO()
+            sys.stdout = output
+            func(*args, **kwargs)
+            sys.stdout = sys.__stdout__
+            return output.getvalue().strip()
+    
     def test_is_type(self):
         """Test is_type with single value inputs."""
         try:
@@ -102,6 +95,7 @@ class TestIsType(unittest.TestCase):
         
     def test_is_type_invalid_empty_iterables(self):
         """Test that empty iterables raise ValueErrors."""
+        
         try:
             self.assertTrue(is_type([], list))
             self.assertTrue(is_type(pd.Series([], dtype=str), pd.Series))
@@ -116,17 +110,82 @@ class TestIsType(unittest.TestCase):
             with self.assertRaises(ValueError):
                 is_type("hi", np.array([]))
 
-            with self.assertRaises(ValueError):
-                is_type([], int)
-            with self.assertRaises(ValueError):
-                is_type((), int)
-            with self.assertRaises(ValueError):
-                is_type(pd.Series([], dtype=str), str)
-            with self.assertRaises(ValueError):
-                is_type(np.array([]), str)
+            captured_output = self.capture_output(is_type, [], int, report=True)
+            expected_warning = "WARNING: Input is an empty iterable '[]' but asked to check for type <class 'int'>."
+            self.assertEqual(captured_output, expected_warning)
+            self.assertFalse(is_type([], int))
+            captured_output = self.capture_output(is_type, (), int, report=True)
+            expected_warning = "WARNING: Input is an empty iterable '()' but asked to check for type <class 'int'>."
+            self.assertEqual(captured_output, expected_warning)
+            self.assertFalse(is_type((), int))
+            self.assertFalse(is_type(pd.Series([], dtype=str), str))
+            self.assertFalse(is_type(np.array([]), str))
         except Exception as e:
             print("is_type empty iterable test failed")
             raise e
+
+class TestDFFunctions(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up a sample DataFrame for testing."""
+        cls.df = pd.DataFrame(columns=['A', 'B', 'C', 'D'])
+
+    def test_in_df(self):
+        try:
+            self.assertTrue(in_df('A', self.df))
+            self.assertFalse(in_df('X', self.df))
+            self.assertTrue(in_df(2, self.df))  # Index 2 exists
+            with self.assertRaises(AssertionError):
+                in_df(-1, self.df)
+            self.assertFalse(in_df(10, self.df))  # Exceeds column length
+            self.assertTrue(in_df(['A', 'C'], self.df))
+            self.assertFalse(in_df(['X', 'Y'], self.df))
+            self.assertFalse(in_df(['A', 'Y'], self.df))
+            with self.assertRaises(AssertionError):
+                in_df([], self.df)
+        except Exception as e:
+            print("in_df test failed")
+            raise e
+
+    def test_any_in_df(self):
+        self.assertTrue(any_in_df('B', self.df))
+        self.assertFalse(any_in_df('Z', self.df))
+        self.assertTrue(any_in_df(['A', 'Z'], self.df))  # 'A' exists
+        self.assertFalse(any_in_df(['X', 'Y'], self.df))  # None exist
+        with self.assertRaises(AssertionError):
+                any_in_df([], self.df)
+
+class TestConcatonaterFunction(unittest.TestCase):
+
+    def setUp(self):
+        """Set up sample dataframes for testing."""
+        self.df1 = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        self.df2 = pd.DataFrame({'A': [5, 6], 'B': [7, 8]})
+
+    def test_concat_basic(self):
+        """Test basic concatenation without sorting."""
+        result = concatonater(self.df1, self.df2)
+        expected = pd.concat([self.df1, self.df2])
+        pd.testing.assert_frame_equal(result, expected)
+
+    def test_concat_with_sorting(self):
+        """Test concatenation with sorting."""
+        sorted_result = concatonater(self.df1, self.df2, sort_cols='A')
+        expected = pd.concat([self.df1, self.df2]).sort_values(by='A', ascending=False)
+        pd.testing.assert_frame_equal(sorted_result, expected)
+
+    def test_invalid_sort_column(self):
+        """Test assertion error for invalid sort column."""
+        with self.assertRaises(AssertionError):
+            concatonater(self.df1, self.df2, sort_cols='C')
+
+    def test_sorting_with_list_of_columns(self):
+        """Test sorting by multiple columns."""
+        df3 = pd.DataFrame({'A': [2, 3], 'B': [5, 6]})
+        result = concatonater(self.df1, df3, sort_cols=['A', 'B'])
+        expected = pd.concat([self.df1, df3]).sort_values(by=['A', 'B'], ascending=False)
+        pd.testing.assert_frame_equal(result, expected)
 
 if __name__ == '__main__':
     rudimentary_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestRudimentary))
@@ -135,3 +194,9 @@ if __name__ == '__main__':
     is_type_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestIsType))
     if is_type_tests.wasSuccessful():
         print("✅ All is_type tests passed successfully!")
+    df_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestDFFunctions))
+    if df_tests.wasSuccessful():
+        print("✅ All in_df and any_in_df tests passed successfully!")
+    concat_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestConcatonaterFunction))
+    if concat_tests.wasSuccessful():
+        print("✅ All concatonator tests passed successfully!")
