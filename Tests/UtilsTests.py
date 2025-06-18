@@ -1,10 +1,7 @@
 import unittest
-import sys
-import os
+
 import pandas as pd
 import numpy as np
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ASUCExplore.Utils import *
 
@@ -24,9 +21,9 @@ class TestColumnConverter(unittest.TestCase):
         
         # Expected output
         expected_df = pd.DataFrame({
-            'col1': [1, 2, np.nan, 4],  # None values should be replaced with np.nan
+            'col1': [1, 2, -1, 4],  # None values should be replaced with np.nan
             'col2': ['a', 'b', 'c', 'd'], 
-            'col3': [1, 2, np.nan, 4]
+            'col3': [1, 2, -1, 4]
         })
         
         try:
@@ -58,7 +55,7 @@ class TestColumnConverter(unittest.TestCase):
         column_converter(df, 'col1', int, mutate = True)
 
         expected_df = pd.DataFrame({
-            'col1': [1, 2, np.nan, 4],  # None values should be replaced with np.nan
+            'col1': [1, 2, -1, 4],  # None values should be replaced with np.nan
             'col2': ['a', 'b', 'c', 'd']
         })
 
@@ -133,30 +130,38 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(df, expected_df)
         except Exception as e:
-            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Basic Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
             print(df)
-            print("\nShould be: ")
+            print("result col type was:\n")
+            print(df['col1'].dtype)
+            print("\nExpected dataframe: ")
             print(expected_df)
+            print("expected col type was:\n")
+            print(expected_df['col1'].dtype)
             raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except Exception as e:
-            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Basic Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
             print(output_df)
-            print("\nShould be: ")
+            print("result col type was:\n")
+            print(df['col1'].dtype)
+            print("\nExpected dataframe: ")
             print(expected_df)
+            print("expected col type was:\n")
+            print(expected_df['col1'].dtype)
             raise e
 
-    def test_convert_to_datetime_looping(self):
+    def test_multi_format_datetime(self):
         df = pd.DataFrame({
             'col1': ['2024-01-01', 'May 4th, 2025', 'invalid', '17/08/2023'],
             'col2': [1, 2, 3, 4]
         })
         
         # Convert 'col1' to datetime
-        output_df = column_converter(df, 'col1', pd.Timestamp, datetime_element_looping = True)
-        column_converter(df, 'col1', pd.Timestamp, mutate = True, datetime_element_looping = True)
+        output_df = column_converter(df, 'col1', pd.Timestamp, date_varies=True)
+        column_converter(df, 'col1', pd.Timestamp, mutate = True, date_varies=True)
         
         # Expected output: 'invalid' should be NaT (Not a Time)
         expected_df = pd.DataFrame({
@@ -167,19 +172,27 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(df, expected_df)
         except Exception as e:
-            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Multi-Format Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
             print(df)
-            print("\nShould be: ")
+            print("result col type was:\n")
+            print(df['col1'].dtype)
+            print("\nExpected dataframe: ")
             print(expected_df)
+            print("expected col type was:\n")
+            print(expected_df['col1'].dtype)
             raise e
 
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except Exception as e:
-            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Multi-Format Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
             print(output_df)
-            print("\nShould be: ")
+            print("result col type was:\n")
+            print(df['col1'].dtype)
+            print("\Expected dataframe be: ")
             print(expected_df)
+            print("expected col type was:\n")
+            print(expected_df['col1'].dtype)
             raise e
 
     def test_convert_to_str(self):
@@ -201,7 +214,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(df, expected_df)
         except Exception as e:
-            print(f"Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Mutative String Conversion Failed\nDataframe was: ")
             print(df)
             print("\nShould be: ")
             print(expected_df)
@@ -210,7 +223,7 @@ class TestColumnConverter(unittest.TestCase):
         try:
             pd.testing.assert_frame_equal(output_df, expected_df)
         except Exception as e:
-            print(f"Non-Mutative pd.Timestamp Conversion Failed\nDataframe was: ")
+            print(f"Non-Mutative String Conversion Failed\nDataframe was: ")
             print(output_df)
             print("\nShould be: ")
             print(expected_df)
@@ -229,9 +242,9 @@ class TestColumnConverter(unittest.TestCase):
         column_converter(df, ['col1', 'col2', 'col3'], int, mutate =  True)
         
         expected_df = pd.DataFrame({
-            'col1': [1, 2, np.nan, 4, np.nan],  # Invalid values become NaN
-            'col2': [1, 2, 3, np.nan, np.nan], 
-            'col3': [100, np.nan, 200, np.nan, 300]  
+            'col1': [1, 2, -1, 4, -1],  # Invalid values become NaN
+            'col2': [1, 2, 3, -1, -1], 
+            'col3': [100, -1, 200, -1, 300]  
         })
 
         try:
@@ -262,39 +275,6 @@ class TestColumnConverter(unittest.TestCase):
         
         # Test passes if no crash occurs; we won't check for exact output here, but ensure it doesn't crash
         self.assertTrue(True)
-
-class TestAnyDrop(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        """Create a sample DataFrame for testing."""
-        cls.sample_df = pd.DataFrame({
-            "A": [1, 2, 3],
-            "B": [4, 5, 6],
-            "C": [7, 8, 9]
-        })
-
-    def test_anydrop_single_string(self):
-        """Test when cols is a single string."""
-        result = any_drop(self.sample_df, "A")
-        self.assertNotIn("A", result.columns)
-        self.assertIn("B", result.columns)
-        self.assertIn("C", result.columns)
-
-    def test_anydrop_long_list_of_strings(self):
-        """Test when cols is a long list of strings."""
-        result = any_drop(self.sample_df, ["A", "B", "C", "D", "E"])
-        self.assertEqual(list(result.columns), [])
-
-    def test_anydrop_mixed_list(self):
-        """Test when cols contains both strings and non-string values, expecting a TypeError."""
-        with self.assertRaises(AssertionError):
-            any_drop(self.sample_df, ["A", 123, None, "C"])
-
-    def test_anydrop_empty_list(self):
-        """Test when cols is an empty list."""
-        result = any_drop(self.sample_df, [])
-        self.assertEqual(list(result.columns), ["A", "B", "C"])  # No columns should be dropped
 
 # Bulk Manual Populator is not expected to be a heavily used function
 # class TestBulkManualPopulater(unittest.TestCase):
@@ -500,8 +480,8 @@ class TestHeadingFinder(unittest.TestCase):
     def test_with_shift(self):
         result = heading_finder(self.df, start_col='A', start='Header1', shift=1, end_col='A', end='End1')
         expected = pd.DataFrame({
-            'Header1': ['Data2'], 
-            'Header2': ['Data4']
+            'Data1': ['Data2'], 
+            'Data3': ['Data4']
             })
         try: 
             pd.testing.assert_frame_equal(result, expected)
@@ -568,10 +548,7 @@ class TestHeadingFinder(unittest.TestCase):
 if __name__ == '__main__':
     column_converter_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestColumnConverter))
     if column_converter_tests.wasSuccessful():
-        print("✅ All Column Converter tests passed successfully!")
-    any_drop_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestAnyDrop))
-    if any_drop_tests.wasSuccessful():
-        print("✅ All Any Drop function tests passed successfully!")
+        print("✅ All column_converter tests passed successfully!")
     # bulk_manual_populator_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestBulkManualPopulater))
     # if bulk_manual_populator_tests.wasSuccessful():
     #     print("✅ All Bulk Manual Populator tests passed successfully!")
@@ -580,4 +557,4 @@ if __name__ == '__main__':
     #     print("✅ All Category Updater tests passed successfully!")
     heading_finder_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestHeadingFinder))
     if heading_finder_tests.wasSuccessful():
-        print("✅ All Heading Finder tests passed successfully!")
+        print("✅ All heading_finder tests passed successfully!")

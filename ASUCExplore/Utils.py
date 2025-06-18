@@ -8,16 +8,20 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from ASUCExplore.Cleaning import is_type, in_df, any_in_df, is_valid_iter
 
-def column_converter(df, cols, t, mutate = False, datetime_element_looping = False):
+def column_converter(df, cols, t, fillna_val = np.nan, mutate = False, date_varies = False):
     """
     Either mutates or creates a copy of the inputted dataframe 'df' but with columns 'cols' converted into type 't'.
     Can handle conversion to int, float, pd.Timestamp and str. Specify returning a new copy vs mutating with 'mutate' argument.
     None and invalid values use pandas' default handlibg: They're filled with np.nan values. Invalid datetime objects are filled with NaT values. 
     Converting floats to ints means they get rounded up/down accordingly.
+
+    Default na value for ints is -1.
+    No fillna for datetime objects.
     
     Version 1.0: CANNOT Convert multple columns to different types
     """
-    
+    if fillna_val is None:
+        fillna_val = np.nan
 
     if isinstance(cols, str): # If a single column is provided, convert to list for consistency
         cols = [cols]
@@ -26,26 +30,34 @@ def column_converter(df, cols, t, mutate = False, datetime_element_looping = Fal
         df = df.copy()
 
     if t == int:
-        df[cols] = df[cols].fillna(np.nan).astype(t)
+        if pd.isna(fillna_val):
+            fillna_val = -1
+        assert isinstance(fillna_val, int), f"Trying to convert columns to type int but 'fillna_val' is type {type(fillna_val)} rather than int"
+        df[cols] = df[cols].apply(pd.to_numeric, errors='coerce').fillna(fillna_val).astype(int)
         
     elif t == float:
-        df[cols] = df[cols].apply(pd.to_numeric, errors='coerce')
+        assert isinstance(fillna_val, float), f"Trying to convert columns to type float but 'fillna_val' is type {type(fillna_val)} rather than float"
+        df[cols] = df[cols].apply(pd.to_numeric, errors='coerce').fillna(fillna_val)
         
     elif t == pd.Timestamp:
-        if not datetime_element_looping:
+        if not date_varies:
             for col in cols: 
                 df[col] = pd.to_datetime(df[col], errors='coerce')
         else: #to handle different entries being formatted differently
             for col in cols: 
                 for index in df[col].index:
-                    df.loc[index, col] = pd.to_datetime(df.loc[index, col], errors='coerce')
+                    try:
+                        df.loc[index, col] = pd.Timestamp(df.loc[index, col])
+                    except ValueError as e:
+                        df.loc[index, col] = pd.NaT
+                df[col] = pd.to_datetime(df[col], errors='coerce') # sets the column's dtype to datetime64
         
     elif t == str:
-        df[cols] = df[cols].astype(str)
+        df[cols] = df[cols].astype(str).fillna(fillna_val)
         
     else:
         try:
-            df[cols] = df[cols].astype(t)
+            df[cols] = df[cols].astype(t).fillna(fillna_val)
         except Exception as e:
             print(f"Error converting {cols} to {t}: {e}")
     
@@ -82,18 +94,6 @@ def column_renamer(df, rename):
         assert is_type(cleaned_df.columns, str), 'CRU Final Check: columns not all strings'
 
         return cleaned_df
-
-def any_drop(df, cols):
-    """
-    Drops any and all columns instantiated in the 'cols' arg from 'df' arg if they're present."""
-    assert isinstance(df, pd.DataFrame), f"Inputted 'df' should be a pandas dataframe,  but is {type(df)}"
-    assert is_type(cols, str), "'cols' must be a string or an iterable (list, tuple, or pd.Series) of strings."
-    assert any_in_df(cols, df), f"None of the columns in {cols} are present in the DataFrame."
-    if isinstance(cols, str):
-        cols_to_drop = [cols] if cols in df.columns else []
-    else:
-        cols_to_drop = [c for c in cols if c in df.columns]
-    return df.drop(columns=cols_to_drop)
 
 
 def oasis_cleaner(OASIS_master, approved_orgs_only=True, year=None, club_type=None):
@@ -202,7 +202,8 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
         Default is 0 which means that the extracted start value becomes the header (ie the row corresponding to the 'nth_start match in 'start_col' is set as the header).
     
     - end_col (str or int): Column index or name to search for the ending value.
-    - end (str, int, or list, optional): The ending value(s) or row index to limit the DataFrame.
+    - end (str, int, or list, optional): The ending value(s) or row index to limit the DataFrame. 
+        The row corresponding to the end value is excluded
     - nth_end (int): If there are multiple occurences of 'end' in 'col' start at the 'nth_start' occurences of 'header' in 'col'.
 
     - start_logic (str, optional): Matching method for the `start` value. Default is exact matching.
@@ -284,7 +285,7 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
             rv = df.iloc[:end_index]
             rv_header = df.iloc[0,:]
             rv = rv[1:]
-            rv.columns = rv_header
+            rv.columns = rv_header.values # so the index of the extracted row doesn't get set as the index label 
             rv = rv.reset_index(drop=True)
             return rv
         raise ValueError(f"End value '{end}' not found in column '{end_col}'.")
@@ -292,6 +293,6 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     rv = df
     rv_header = df.iloc[0,:]
     rv = rv[1:]
-    rv.columns = rv_header
+    rv.columns = rv_header.values # so the index of the extracted row doesn't get set as the index label 
     rv = rv.reset_index(drop=True)
     return rv

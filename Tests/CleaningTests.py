@@ -146,6 +146,39 @@ class TestDFFunctions(unittest.TestCase):
         with self.assertRaises(AssertionError):
                 any_in_df([], self.df)
 
+class TestAnyDrop(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        """Create a sample DataFrame for testing."""
+        cls.sample_df = pd.DataFrame({
+            "A": [1, 2, 3],
+            "B": [4, 5, 6],
+            "C": [7, 8, 9]
+        })
+
+    def test_anydrop_single_string(self):
+        """Test when cols is a single string."""
+        result = any_drop(self.sample_df, "A")
+        self.assertNotIn("A", result.columns)
+        self.assertIn("B", result.columns)
+        self.assertIn("C", result.columns)
+
+    def test_anydrop_long_list_of_strings(self):
+        """Test when cols is a long list of strings."""
+        result = any_drop(self.sample_df, ["A", "B", "C", "D", "E"])
+        self.assertEqual(list(result.columns), [])
+
+    def test_anydrop_mixed_list(self):
+        """Test when cols contains both strings and non-string values, expecting a TypeError."""
+        with self.assertRaises(AssertionError):
+            any_drop(self.sample_df, ["A", 123, None, "C"])
+
+    def test_anydrop_empty_list(self):
+        """Test when cols is an empty list."""
+        result = any_drop(self.sample_df, [])
+        self.assertEqual(list(result.columns), ["A", "B", "C"])  # No columns should be dropped
+
 if __name__ == '__main__':
     rudimentary_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestRudimentary))
     if rudimentary_tests.wasSuccessful():
@@ -156,3 +189,6 @@ if __name__ == '__main__':
     df_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestDFFunctions))
     if df_tests.wasSuccessful():
         print("✅ All in_df and any_in_df tests passed successfully!")
+    any_drop_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestAnyDrop))
+    if any_drop_tests.wasSuccessful():
+        print("✅ All any_drop tests passed successfully!")

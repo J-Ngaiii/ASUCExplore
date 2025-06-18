@@ -80,12 +80,14 @@ def is_type(inpt, t, report=False):
         t = tuple(t)
 
     try:
-        if isinstance(inpt, t):  # Direct type check
+        if isinstance(inpt, t): # Direct type check: handles inpt and t both are not iterables
             return True
+        elif any(isinstance(inpt, elem) for elem in t):
+            return True # Handles inpt not iterable, t iterable
     except TypeError:  # Catch only type-related errors
         return _is_type(inpt, t, report=report)
     
-    if isinstance(inpt, Iterable):
+    if isinstance(inpt, Iterable): # Handles inpt iterable, t not iterable as well as both inpt and t iterable
         return _is_type(inpt, t, report=report)
     
 def in_df(inpt, df):
@@ -145,4 +147,20 @@ def any_in_df(inpt, df):
     elif isinstance(inpt, Iterable):
         inpt = list(inpt)
         return any(df.columns.isin(inpt))
+    
+def any_drop(df, cols):
+    """
+    Drops any and all columns instantiated in the 'cols' arg from 'df' arg if they're present."""
+    assert isinstance(df, pd.DataFrame), f"Inputted 'df' should be a pandas dataframe,  but is {type(df)}"
+    if list(cols) != []:
+        assert is_type(cols, str), "'cols' must be a string or an iterable of strings."
+        assert any_in_df(cols, df), f"None of the columns in {cols} are present in the DataFrame."
+    else:
+        return df
+
+    if isinstance(cols, str):
+        cols_to_drop = [cols] if cols in df.columns else []
+    else:
+        cols_to_drop = [c for c in cols if c in df.columns]
+    return df.drop(columns=cols_to_drop)
 
