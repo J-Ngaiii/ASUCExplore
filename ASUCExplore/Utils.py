@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from sklearn.metrics.pairwise import cosine_similarity 
 # from rapidfuzz import fuzz, process
 
-from ASUCExplore.Cleaning import is_type, in_df, any_in_df, is_valid_iter
+from ASUCExplore.Cleaning import is_type, in_df, any_in_df, is_valid_iter, any_drop
 
 def column_converter(df, cols, t, fillna_val = np.nan, mutate = False, date_varies = False):
     """

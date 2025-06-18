@@ -31,11 +31,12 @@ def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s'):
       if len(starts) == 1:
           pattern += starts[0]
       else: 
+         pattern = '(?:'
          for start_keyword in starts[:-1]: 
             pattern += start_keyword + '|'
-         pattern += starts[-1]
+         pattern += starts[-1] + ')'
       
-      pattern += '\s*([\s\S]*)(?:' 
+      pattern += '\s*?([\s\S]*?)(?:' # make sure to have the '*?' to do non-greedy matching
 
       if len(ends) == 1:
          pattern += ends[0]
@@ -44,20 +45,28 @@ def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s'):
             pattern += end_prepattern + end_keyword + '|'
          pattern += end_prepattern + ends[-1]
 
-      pattern + ')'
+      pattern += ')'
       return pattern
 
 def _motion_processor(club_names, names_and_motions):
-   """Takes in a list of club names for a given chunk and a list of club names and motions.
-   The list of club names and motions must be arranged such that all motions relevant to a particular club comes after the club name appears in the list."""
+   """Takes in a list of club names for a given chunk and a list of club names and motions. Outputs a dictionary of club names mapped to keys containing the relevant motion. 
+   club_names (list[str]): List of club names (eg. ['V-Day at Berkeley', 'Aion', 'Volunteer Income Tax Assistance Program', 'ASUC Menstrual Equity Commission', 'ASUC Menstrual Equity Commission'])
+   names_and_motions (list[str]): List of club names and motions (eg. ['V-Day at Berkeley', 'Motion to approve $400 by Senator Manzoor', 'Seconded by Senator Ponna', 'Aion', 'Motion to approve $300 by Senator Manzoor ', 'Seconded by Senator Ponna ')
+   """
+   # print(f"Club Names: {club_names}")
+   # print(f"Club Motions: {names_and_motions}")
    rv = {}
-   club_set = set(club_names)  # Convert to set for faster lookup
+   repeats = dict(zip(club_names, [0]*len(club_names)))
+   club_set = set(club_names)  
    curr_club = None
    for curr in names_and_motions: 
-      if curr in club_set:
-         curr_club = curr
+      if curr in club_set: 
+         if curr in rv: #to register clubs that get repeated in the agenda due to multiple submissions
+            curr_club = curr + f" ({str(repeats[curr] + 1)})"
+         else:
+            curr_club = curr
          rv[curr_club] = [] #to register clubs with no motions
-      else:
+      else: 
          if curr_club is None:
             print(f"""WARNING line skip occured with line: {curr}
             total list is: {names_and_motions}""")
@@ -66,7 +75,7 @@ def _motion_processor(club_names, names_and_motions):
 
    return rv
 
-def _process_agenda(inpt, start=['Contingency Funding'], end=['Finance Rule', 'Space Reservation', 'Sponsorship', 'Adjournment'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})'):
+def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['Finance Rule', 'Rule Waiver', 'Space Reservation', 'Sponsorship', 'Adjournment', 'ABSA', 'ABSA Appeals'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})'):
    """
    You have a chunk of text from the document you want to turn into a table and an identifier for that chunk of text (eg. just the Contingency Funding section and the identifeir is the date). 
    Thus function extracts the chunk and converts it into a tabular format.
@@ -76,21 +85,23 @@ def _process_agenda(inpt, start=['Contingency Funding'], end=['Finance Rule', 'S
    """
    date = re.findall(rf"{identifier}", inpt)[0]
    pattern = _find_chunk_pattern(start, end)
+   # print(f"Pattern: {pattern}")
    chunk = re.findall(rf"{pattern}", inpt)[0]
 
    # print(f"chunk: {chunk}")
 
-   valid_name_chars = '\w\s\-\_\*\&\%\$\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters?
+   valid_name_chars = '\w\s\-\_\*\&\%\$\+\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters? eg. for 'Telegraph+' we add the plus sign so regex will pick it up
    club_name_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)' #first part looks for a date, then excluding motion and seconded, then club names
    club_names = list(re.findall(club_name_pattern, chunk)) #just matches club names --> list of tuples of club names
 
    names_and_motions = list(re.findall(rf'\d+\.\s(.+)\n?', chunk)) #pattern matches every single line that comes in the format "<digit>.<space><anything>""
    motion_dict = _motion_processor(club_names, names_and_motions)
+   # print(f"Motion Dict: {motion_dict}")
    
 
    decisions = []
    allocations = []
-   for name in club_names:
+   for name in motion_dict.keys():
       
       if motion_dict[name] == []:
          decisions.append('No record on input doc')
@@ -128,7 +139,7 @@ def _process_agenda(inpt, start=['Contingency Funding'], end=['Finance Rule', 'S
             allocations.append(np.nan)
 
    rv = pd.DataFrame({
-      'Organization Name' : club_names, 
+      'Organization Name' : motion_dict.keys(), 
       'Ficomm Decision' : decisions, 
       'Amount Allocated' : allocations
       }
