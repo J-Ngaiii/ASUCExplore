@@ -1,6 +1,8 @@
 import pandas as pd
+from typing import Callable
 from ASUCExplore import Cleaning as cl
 from ASUCExplore.Core import ABSA_Processor, Agenda_Processor, OASIS_Abridged
+
 
 class ASUCProcessor:
     """Wrapper class for processors. Specify the file type (eg. ABSA) then the __call__ method executes the appropriate processing function, outputting the result.
@@ -66,7 +68,7 @@ class ASUCProcessor:
     def get_type(self) -> str:
         return self.type
     
-    def get_processing_func(self) -> function:
+    def get_processing_func(self) -> Callable:
         return self.processing_func[self.get_type()]
 
     def absa(self, df_dict, names, reporting = False) -> list[pd.DataFrame]:
