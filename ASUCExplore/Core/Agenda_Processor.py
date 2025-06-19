@@ -4,7 +4,7 @@ import re
 
 from ASUCExplore.Cleaning import is_type
 
-def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s'):
+def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s') -> str:
       """
       Extracts a chunk of text from 'inpt' text based on start and end keywords.
       starts (list[str]): List of keywords to start the chunk of text we want to extract
@@ -43,7 +43,7 @@ def _find_chunk_pattern(starts, ends, end_prepattern = '\d\.\s'):
       pattern += ')'
       return pattern
 
-def _motion_processor(club_names, names_and_motions):
+def _motion_processor(club_names, names_and_motions) -> dict[str:list[str]]:
    """Takes in a list of club names for a given chunk and a list of club names and motions. Outputs a dictionary of club names mapped to keys containing the relevant motion. 
    club_names (list[str]): List of club names (eg. ['V-Day at Berkeley', 'Aion', 'Volunteer Income Tax Assistance Program', 'ASUC Menstrual Equity Commission', 'ASUC Menstrual Equity Commission'])
    names_and_motions (list[str]): List of club names and motions (eg. ['V-Day at Berkeley', 'Motion to approve $400 by Senator Manzoor', 'Seconded by Senator Ponna', 'Aion', 'Motion to approve $300 by Senator Manzoor ', 'Seconded by Senator Ponna ')
@@ -70,7 +70,7 @@ def _motion_processor(club_names, names_and_motions):
 
    return rv
 
-def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['Finance Rule', 'Rule Waiver', 'Space Reservation', 'Sponsorship', 'Adjournment', 'ABSA', 'ABSA Appeals'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})'):
+def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['Finance Rule', 'Rule Waiver', 'Space Reservation', 'Sponsorship', 'Adjournment', 'ABSA', 'ABSA Appeals'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})') -> pd.DataFrame:
    """
    You have a chunk of text from the document you want to turn into a table and an identifier for that chunk of text (eg. just the Contingency Funding section and the identifeir is the date). 
    Thus function extracts the chunk and converts it into a tabular format.
