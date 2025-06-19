@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Callable
+import re
 from ASUCExplore import Cleaning as cl
 from ASUCExplore.Core import ABSA_Processor, Agenda_Processor, OASIS_Abridged
 
@@ -181,11 +182,12 @@ class ASUCProcessor:
                 df = df_lst[i]
                 id = id_lst[i]
                 name = name_lst[i]
+                year = re.search(r'(?:FY\d{2}|fr\d{2}|\d{2}\-\d{2}\|\d{4}\-\d{4}\))', name)[0]
                 if self.get_type().lower() not in name.lower():
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
                 processing_function = self.get_processing_func()
-                rv.append(processing_function(df))
+                rv.append(processing_function(df, year))
                 if reporting:
                     print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
             except Exception as e:
