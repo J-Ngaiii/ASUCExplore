@@ -104,7 +104,7 @@ class ASUCProcessor:
                 processing_function = self.get_processing_func()
                 rv.append(processing_function(df))
                 if reporting:
-                    print(f"Successfully ran ABSA_Processor on File: {name}, id: {id}")
+                    print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
             except Exception as e:
                 raise e
         return rv, name_lst
@@ -150,7 +150,7 @@ class ASUCProcessor:
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
                 if reporting:
-                    print(f"Successfully ran Agenda_Processor on File: {name}, id: {id}")
+                    print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
             except Exception as e:
                 raise e
         return rv, name_lst
@@ -187,11 +187,10 @@ class ASUCProcessor:
                 processing_function = self.get_processing_func()
                 rv.append(processing_function(df))
                 if reporting:
-                    print(f"Successfully ran ABSA_Processor on File: {name}, id: {id}")
+                    print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
             except Exception as e:
                 raise e
         return rv, name_lst
-        
         
     # A little inspo from CS189 HW6
     def __call__(self, df_dict: dict[str, pd.DataFrame], names: dict[str, str], reporting: bool = False) -> list[pd.DataFrame]:
