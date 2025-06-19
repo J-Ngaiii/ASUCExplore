@@ -1,6 +1,6 @@
 import pandas as pd
-from AEOCFO import Cleaning as cl
-from AEOCFO.Core import ABSA_Processor, Agenda_Processor
+from ASUCExplore import Cleaning as cl
+from ASUCExplore.Core import ABSA_Processor, Agenda_Processor
 
 class ASUCProcessor:
     """Wrapper class for processors. Specify the file type (eg. ABSA) then the __call__ method executes the appropriate processing function, outputting the result.
