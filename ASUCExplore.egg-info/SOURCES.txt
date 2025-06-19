@@ -12,6 +12,7 @@ ASUCExplore.egg-info/top_level.txt
 ASUCExplore/Core/ABSA_Processor.py
 ASUCExplore/Core/Agenda_Processor.py
 ASUCExplore/Core/FR_Processor.py
+ASUCExplore/Core/Name_Matching.py
 ASUCExplore/Core/OASIS_Processor.py
 ASUCExplore/Core/Pipeline.py
 ASUCExplore/Core/SUCont_Processor.py
@@ -22,9 +23,6 @@ ASUCExplore/Legacy/core_legacy.py
 ASUCExplore/Legacy/pipeline_legacy.py
 ASUCExplore/Legacy/utils_legacy.py
 Tests/CleaningTests.py
-Tests/PipelineFRTests.py
-Tests/PipelineFicommTests.py
-Tests/PipelineOASISTests.py
 Tests/PipelineTests.py
 Tests/UtilsTests.py
 asucexplore.egg-info/PKG-INFO
