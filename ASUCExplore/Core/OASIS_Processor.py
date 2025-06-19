@@ -156,7 +156,7 @@ def OASIS_Abridged(df, year, name_var = None, rename=None, col_types=None, exist
         name_var = dict(zip(all_cols, [[]]*len(all_cols))) # list out alterate names by which the columns are sometimes named as 
         for name in name_var.keys():
             if name == 'OASIS RSO Designation': # cases defining alternate namings of columns e know of
-                name_var['OASIS RSO Designation'] = ['LEAD Center Advisor']
+                name_var['OASIS RSO Designation'] = ['LEAD Center Advisor', 'Org Category']
 
     if kept_cols[0] not in df.columns:
         cleaned_df = heading_finder(df, 0, kept_cols[0]) #phase 1

@@ -102,7 +102,11 @@ class ASUCProcessor:
                 if self.get_type().lower() not in name.lower():
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
-                processing_function = self.get_processing_func()
+                try:
+                    processing_function = self.get_processing_func()
+                except Exception as e:
+                    print(f"Processing function {self.get_processing_func().__name__} errored while processing file {name}, ID {id}\nPassing error from {self.get_processing_func().__name__}")
+                    raise e
                 rv.append(processing_function(df))
                 if reporting:
                     print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
@@ -142,7 +146,11 @@ class ASUCProcessor:
                 name = name_lst[i]
                 
                 processing_function = self.get_processing_func()
-                output, date = processing_function(txt)
+                try:
+                    output, date = processing_function(txt)
+                except Exception as e:
+                    print(f"Processing function {self.get_processing_func().__name__} errored while processing file {name}, ID {id}\nPassing error from {self.get_processing_func().__name__}")
+                    raise e
                 date_formatted = pd.Timestamp(date).strftime("%m/%d/%Y")
                 rv.append(output)
                 # HARDCODE ALERT
@@ -187,7 +195,11 @@ class ASUCProcessor:
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
                 processing_function = self.get_processing_func()
-                rv.append(processing_function(df, year))
+                try:
+                    rv.append(processing_function(df, year))
+                except Exception as e:
+                    print(f"Processing function {self.get_processing_func().__name__} errored while processing file {name}, ID {id}\nPassing error from {self.get_processing_func().__name__}")
+                    raise e
                 if reporting:
                     print(f"Successfully ran {self.get_processing_func().__name__} on File: {name}, id: {id}")
             except Exception as e:
