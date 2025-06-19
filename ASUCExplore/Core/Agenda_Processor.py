@@ -139,12 +139,13 @@ def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['F
             allocations.append(np.nan)
 
    rv = pd.DataFrame({
-      'Organization Name' : motion_dict.keys(), 
+      'Organization Name' : pd.Series(motion_dict.keys()).str.strip(), #solves issue of '\r' staying at the end of club names and messing things up
       'Ficomm Decision' : decisions, 
       'Amount Allocated' : allocations
       }
    )
-   
+   # print(f"Agenda Processor Final df: {rv}")
+
    return rv, date
 
 def sa_filter(entry):

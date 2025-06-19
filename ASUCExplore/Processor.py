@@ -1,6 +1,6 @@
 import pandas as pd
-from ASUCExplore import Cleaning as cl
-from ASUCExplore.Core import ABSA_Processor
+from AEOCFO import Cleaning as cl
+from AEOCFO.Core import ABSA_Processor, Agenda_Processor
 
 class ASUCProcessor:
     """Wrapper class for processors. Specify the file type (eg. ABSA) then the __call__ method executes the appropriate processing function, outputting the result.
@@ -32,14 +32,16 @@ class ASUCProcessor:
     - Currently depends on having ABSA_Processor from ASUCExplore > Core > ABSA_Processor.py alr imported into the file
     """
     naming_convention = {
-        "ABSA" : ("RF", "GF") # ABSA processing outputs changes the "RF" raw file classification to the 'GF' general file classification, we don't need to tell the upload func to name the file ABSA because the raw fill should alr be named ABSA
+        "ABSA" : ("RF", "GF"), # ABSA processing outputs changes the "RF" raw file classification to the 'GF' general file classification, we don't need to tell the upload func to name the file ABSA because the raw fill should alr be named ABSA
+        "Contingency" : ("RF", "GF")
     }
 
     def __init__(self, type: str):
+        """self.type currently handles for 'ABSA' and 'Contingency'."""
         self.type = type
         self.processors = {
             "ABSA": self.absa,
-            "Ficomm": self.ficomm
+            "Contingency": self.contingency
         }
 
     def get_type(self) -> str:
@@ -80,8 +82,48 @@ class ASUCProcessor:
                 raise e
         return rv, name_lst
     
-    def ficomm(self, df_dict, names, reporting = False) -> list[pd.DataFrame]:
-        return [], names # still being constructed
+    def contingency(self, txt_dict, names, reporting = False) -> list[pd.DataFrame]:
+        """
+        Function that takes in a dictionary of txt files and names then outputs a dictionary of processed txt files with updated names. 
+        Date is appended to updated file names under formatting: %m/%d/%Y.
+        """
+        assert isinstance(txt_dict, dict), f"df_dict is not a dictionary but {type(txt_dict)}"
+        assert cl.is_type(list(txt_dict.keys()), str), f"df_dict keys are not all strings"
+        assert cl.is_type(list(txt_dict.values()), str), f"df_dict values are not all strings"
+
+        assert isinstance(names, dict), f"names is not a dictionary but {type(names)}"
+        assert cl.is_type(list(names.keys()), str), f"names keys are not all strings"
+        assert cl.is_type(list(names.values()), str), f"names values are not strings"
+
+        if not txt_dict:
+            raise ValueError("df_dict is empty! No DataFrames to process.")
+        if not names:
+            raise ValueError("names is empty! No file names to process.")
+        
+        txt_lst = list(txt_dict.values())
+        id_lst = list(txt_dict.keys())
+        name_lst = list(names.values())
+
+        rv = []
+        for i in range(len(txt_lst)):
+            try: 
+                txt = txt_lst[i]
+                id = id_lst[i]
+                name = name_lst[i]
+                
+                output, date = Agenda_Processor(txt)
+                date_formatted = pd.Timestamp(date).strftime("%m/%d/%Y")
+                rv.append(output)
+                # HARDCODE ALERT
+                name_lst[i] = f"Ficomm-{date_formatted}-{self.naming_convention['Contingency'][0]}" # Contingency draws from ficomm files formatted "Ficomm-date-RF"
+                if 'ficomm' not in name.lower() and 'finance committee' not in name.lower():
+                    print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
+                    name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
+                if reporting:
+                    print(f"Successfully ran Agenda_Processor on File: {name}, id: {id}")
+            except Exception as e:
+                raise e
+        return rv, name_lst
         
     # A little inspo from CS189 HW6
     def __call__(self, df_dict: dict[str, pd.DataFrame], names: dict[str, str], reporting: bool = False) -> list[pd.DataFrame]:
