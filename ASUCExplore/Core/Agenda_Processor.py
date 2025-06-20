@@ -70,7 +70,7 @@ def _motion_processor(club_names, names_and_motions) -> dict[str:list[str]]:
 
    return rv
 
-def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['Finance Rule', 'Rule Waiver', 'Space Reservation', 'Sponsorship', 'Adjournment', 'ABSA', 'ABSA Appeals'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})') -> pd.DataFrame:
+def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['Finance Rule', 'Rule Waiver', 'Space Reservation', 'Sponsorship', 'Adjournment', 'ABSA', 'ABSA Appeals'], identifier='(\w+\s\d{1,2}\w*,\s\d{4})', debug=False):
    """
    You have a chunk of text from the document you want to turn into a table and an identifier for that chunk of text (eg. just the Contingency Funding section and the identifeir is the date). 
    Thus function extracts the chunk and converts it into a tabular format.
@@ -80,18 +80,22 @@ def Agenda_Processor(inpt, start=['Contingency Funding', 'Contingency'], end=['F
    """
    date = re.findall(rf"{identifier}", inpt)[0]
    pattern = _find_chunk_pattern(start, end)
-   # print(f"Pattern: {pattern}")
+   if debug:
+      print(f"Agenda Processor Pattern: {pattern}")
    chunk = re.findall(rf"{pattern}", inpt)[0]
 
    # print(f"chunk: {chunk}")
 
-   valid_name_chars = '\w\s\-\_\*\&\%\$\+\#\@\!\(\)\,\'\"\.' #seems to perform better with explicit handling for special characters? eg. for 'Telegraph+' we add the plus sign so regex will pick it up
+   valid_name_chars = '\w\s\-\_\*\&\%\$\+\#\@\!\(\)\,\'\"' #seems to perform better with explicit handling for special characters? eg. for 'Telegraph+' we add the plus sign so regex will pick it up
    club_name_pattern = f'\d+\.\s(?!Motion|Seconded)([{valid_name_chars}]+)\n(?=\s+\n|\s+\d\.)' #first part looks for a date, then excluding motion and seconded, then club names
    club_names = list(re.findall(club_name_pattern, chunk)) #just matches club names --> list of tuples of club names
+   if debug:
+      print(f"Agenda Processor Club Names: {club_names}")
 
    names_and_motions = list(re.findall(rf'\d+\.\s(.+)\n?', chunk)) #pattern matches every single line that comes in the format "<digit>.<space><anything>""
    motion_dict = _motion_processor(club_names, names_and_motions)
-   # print(f"Motion Dict: {motion_dict}")
+   if debug:
+      print(f"Agenda Processor Motion Dict: {motion_dict}")
    
 
    decisions = []

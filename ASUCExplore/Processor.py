@@ -10,17 +10,12 @@ class ASUCProcessor:
     The get_type method also outputs the type of processing (eg. ABSA processing pipeline) the ASUCProcessor instance was instructed to execute. 
     Both the actual output of processing (list of processed pd.DataFrame objects) and the type of processing initiated (self.type) are returned to an upload function. 
     
-    NOTE the difference between Processors (methods in the ASUCProcessor class) and Processing Functions (transformation functions imported from ASUCExplore). 
-    Processors are a wrapper for Processing Functions that do data validation + naming convention cleaning.
-    Processing Functions are the actual transformation functions themselves. 
-    This strucure allows us to swap out different processing functions by changing the class attribute 'processing_func' which is a dictionary mapping the type inputted to the processing function
-
-    Processors must take in:
+    Processing functions must take in:
     - df_dict (dict[str:pd.DataFrame]): dictionary where keys are file ids and values are the raw files converted into pandas dataframes.
     - reporting (str): parameter that tells the processing function whether or not to print outputs on processing progress.
     - names (dict[str:str]): dictionary where keys are file ids and values are raw file names.
     
-    Processors must return:
+    Processing functions must return:
     - list of processed pd.DataFrame objects
     - list of names with those failing naming conventions highighted
         - highlighting means we append 'MISMATCH' to the beginning the name
@@ -30,7 +25,7 @@ class ASUCProcessor:
     - ASUCProcessor instance 
         - takes in list of raw files names and raw fils as dataframes
 
-        --> outputs processed files in a list, type of processing executed and refined list of names with naming convention mismatches flagged
+        --> outputs processed fils in a list, type of processing executed and refined list of names with naming convention mismatches flagged
     - drive_push func:
         - From ASUCProcessor instance: take in the outputs of the processed files, the type of processing executed and updated list of names
         
@@ -39,13 +34,19 @@ class ASUCProcessor:
     Dependencies:
     - Currently depends on having ABSA_Processor from ASUCExplore > Core > ABSA_Processor.py alr imported into the file
     """
-    naming_convention = {
+    tagging_convention = {
         "ABSA" : ("RF", "GF"), # ABSA processing outputs changes the "RF" raw file classification to the 'GF' general file classification, we don't need to tell the upload func to name the file ABSA because the raw fill should alr be named ABSA
         "Contingency" : ("RF", "GF"), 
         "OASIS" : ("RF", "GF")
     }
 
-    naming_dependency = { # for some files we need to check what they're named as, for others we don't
+    name_convention = {
+        "ABSA" : "ABSA", # designates what the name of the cleaned file should be called
+        "Contingency" : "Ficomm-Cont", 
+        "OASIS" : "OASIS"
+    }
+
+    raw_name_dependency = { # for some files we need to check what they're named as, for others we don't
         "ABSA" : True, 
         "Contingency" : False,
         "OASIS" : True
@@ -66,9 +67,17 @@ class ASUCProcessor:
             "OASIS": self.oasis
         }
 
+    @classmethod
+    def get_tagging(self) -> dict[str:str]:
+        return ASUCProcessor.tagging_convention
+    
+    @classmethod
+    def get_name(self) -> dict[str:str]:
+        return ASUCProcessor.name_convention
+    
     def get_type(self) -> str:
         return self.type
-    
+
     def get_processing_func(self) -> Callable:
         return self.processing_func[self.get_type()]
 
@@ -99,6 +108,8 @@ class ASUCProcessor:
                 df = df_lst[i]
                 id = id_lst[i]
                 name = name_lst[i]
+                year = re.search(r'(?:FY\d{2}|fr\d{2}|\d{2}\-\d{2}\|\d{4}\-\d{4}\))', name)[0]
+                name_lst[i] = f"{self.get_name()['ABSA']}-{year}-{self.get_tagging()['ABSA'][0]}" # Contingency draws from ficomm files formatted "Ficomm-date-RF"
                 if self.get_type().lower() not in name.lower():
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
@@ -147,14 +158,14 @@ class ASUCProcessor:
                 
                 processing_function = self.get_processing_func()
                 try:
-                    output, date = processing_function(txt)
+                    output, date = processing_function(txt,  debug=False)
                 except Exception as e:
                     print(f"Processing function {self.get_processing_func().__name__} errored while processing file {name}, ID {id}\nPassing error from {self.get_processing_func().__name__}")
                     raise e
                 date_formatted = pd.Timestamp(date).strftime("%m/%d/%Y")
                 rv.append(output)
                 # HARDCODE ALERT
-                name_lst[i] = f"Ficomm-{date_formatted}-{self.naming_convention['Contingency'][0]}" # Contingency draws from ficomm files formatted "Ficomm-date-RF"
+                name_lst[i] = f"{self.get_name()['Contingency']}-{date_formatted}-{self.get_tagging()['Contingency'][0]}" # Contingency draws from ficomm files formatted "Ficomm-date-RF"
                 if 'ficomm' not in name.lower() and 'finance committee' not in name.lower():
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
@@ -191,6 +202,7 @@ class ASUCProcessor:
                 id = id_lst[i]
                 name = name_lst[i]
                 year = re.search(r'(?:FY\d{2}|fr\d{2}|\d{2}\-\d{2}\|\d{4}\-\d{4}\))', name)[0]
+                name_lst[i] = f"{self.get_name()['OASIS']}-{year}-{self.get_tagging()['OASIS'][0]}" # OASIS draws from ficomm files formatted "OASIS-date-RF"
                 if self.get_type().lower() not in name.lower():
                     print(f"File does not matching processing naming conventions!\nFile name: {name}\nID: {id}") # do we raise to stop program or just print?
                     name_lst[i] = 'MISMATCH-' + name_lst[i] # WARNING: mutating array as we loop thru it, be careful
