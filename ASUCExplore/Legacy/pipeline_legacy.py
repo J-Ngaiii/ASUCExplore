@@ -11,7 +11,7 @@ from ASUCExplore.Cleaning import is_type, in_df
 from ASUCExplore.Core.OASIS_Processor import year_rank_collision_handler, asuc_processor
 from ASUCExplore.Core.Name_Matching import close_match_sower, sa_filter
 from ASUCExplore.Legacy import cont_approval, concatonater, academic_year_parser
-from ASUCExplore.Core.FR_Processor import FR_Processor
+from ASUCExplore.Core.FR_Processor import FR_ProcessorV2
 
 def OASIS_Standard_Processor(df, year, rename=None, col_types=None, existing=None):
     """
