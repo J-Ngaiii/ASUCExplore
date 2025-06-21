@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from ASUCExplore.Utils import heading_finder, ending_keyword_adder
 
 def FY_Rez_Generator(df, Alphabet_List, appx=True):
 
@@ -8,7 +9,7 @@ def FY_Rez_Generator(df, Alphabet_List, appx=True):
     FR_Sheet_RAW[first_col] = FR_Sheet_RAW[first_col].apply(lambda x: 'NaN' if pd.isna(x) else x)
 
     if appx:
-        boundary = FR_Sheet_RAW[FR_Sheet_RAW[first_col] == 'Appx.'].index[1]
+        boundary = FR_Sheet_RAW[FR_Sheet_RAW[first_col] == 'Appx.'].index[1] # Appx. occurs twice
         rang = pd.Series(FR_Sheet_RAW[FR_Sheet_RAW[first_col].isin(Alphabet_List)].index)
         rang = rang[rang.apply(lambda x: x < boundary)]
     else:
@@ -35,4 +36,9 @@ def FR_Processor(df):
     )
     
     return FY_Rez_Generator(df, FY24_Alphabet)
-    
+
+
+def FR_ProcessorV2(df):
+    """Employs heading_finder to clean data."""
+    df = ending_keyword_adder(df)
+    return heading_finder(df, start_col=0, start='Appx', start_logic='contains', end_col=0, end='END', end_logic='exact')

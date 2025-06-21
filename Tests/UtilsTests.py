@@ -1,4 +1,6 @@
 import unittest
+from io import StringIO
+from contextlib import redirect_stdout
 
 import pandas as pd
 import numpy as np
@@ -545,6 +547,61 @@ class TestHeadingFinder(unittest.TestCase):
         with self.assertRaises(ValueError):
             heading_finder(self.df, start_col='A', start='Header1', end_col='A', end='NonExistentEnd')
 
+class TestEndingKeywordAdder(unittest.TestCase):
+    def setUp(self):
+        self.df_base = pd.DataFrame({
+            'A': ['Appx.', 'A', 'B', None, 'Z', None, None],
+            'B': [1, 2, 3, 4, 5, 6, 7]
+        })
+
+    def test_insert_using_nan(self):
+        df = ending_keyword_adder(self.df_base, alphabet=None)
+        self.assertIn('END', df['Appx.'].values)
+
+    def test_insert_using_alphabet(self):
+        df = ending_keyword_adder(self.df_base, alphabet=list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+        self.assertIn('END', df['Appx.'].values)
+
+    def test_column_name_validation(self):
+        with self.assertRaises(AssertionError):
+            ending_keyword_adder(self.df_base, start_col='Z')
+
+    def test_column_index_validation(self):
+        with self.assertRaises(AssertionError):
+            ending_keyword_adder(self.df_base, start_col=100)
+
+    def test_missing_nan_handling(self):
+        df_no_nan = pd.DataFrame({'A': ['Appx.', 'A', 'B', 'C'], 'B': [1, 2, 3, 4]})
+        f = StringIO()
+        with redirect_stdout(f):
+            result = ending_keyword_adder(df_no_nan, alphabet=None)
+        self.assertNotIn('END', result['Appx.'].values)
+        self.assertIn("Warning", f.getvalue())
+
+    def test_missing_alphabet_handling(self):
+        df_invalid = pd.DataFrame({'A': ['Appx.', 'AA', 'BB'], 'B': [1, 2, 3]})
+        f = StringIO()
+        with redirect_stdout(f):
+            result = ending_keyword_adder(df_invalid, alphabet=['X', 'Y', 'Z'])
+        self.assertNotIn('END', result['Appx.'].values)
+        self.assertIn("Warning", f.getvalue())
+
+    def test_end_col_default_behavior(self):
+        df = ending_keyword_adder(self.df_base)
+        # Check END inserted into the same column as start_col (column 'A')
+        self.assertIn('END', df['Appx.'].values)
+
+    def test_original_df_not_mutated(self):
+        _ = ending_keyword_adder(self.df_base)
+        self.assertNotIn('END', self.df_base['A'].values)
+
+    def test_reporting_prints_output(self):
+        f = StringIO()
+        with redirect_stdout(f):
+            _ = ending_keyword_adder(self.df_base, alphabet=list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), reporting=True)
+        out = f.getvalue()
+        self.assertIn("Inserted 'END'", out)
+
 if __name__ == '__main__':
     column_converter_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestColumnConverter))
     if column_converter_tests.wasSuccessful():
@@ -558,3 +615,6 @@ if __name__ == '__main__':
     heading_finder_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestHeadingFinder))
     if heading_finder_tests.wasSuccessful():
         print("✅ All heading_finder tests passed successfully!")
+    end_keyword_tests = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(TestEndingKeywordAdder))
+    if end_keyword_tests.wasSuccessful():
+        print("✅ All ending_keyword_adder tests passed successfully!")

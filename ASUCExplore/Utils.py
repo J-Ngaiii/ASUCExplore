@@ -215,7 +215,8 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     - pd.DataFrame: The adjusted DataFrame starting from the located header and ending at the specified end.
     """
     assert isinstance(start_col, str) or isinstance(start_col, int), "'start_col' must be index of column or name of column."
-    assert in_df(start_col, df), 'Given start_col is not in the given df.'
+    assert in_df(start_col, df), f"start_col '{start_col}' is not in df columns: {df.columns.tolist()}"
+
 
     if end_col is not None:
         assert isinstance(end_col, str) or isinstance(end_col, int), "'end_col' must be index of column or name of column."
@@ -296,3 +297,40 @@ def heading_finder(df, start_col, start, nth_start = 0, shift = 0, start_logic =
     rv.columns = rv_header.values # so the index of the extracted row doesn't get set as the index label 
     rv = rv.reset_index(drop=True)
     return rv
+
+def ending_keyword_adder(df, given_start = 'Appx.', start_col = 0, adding_end_keyword='END', end_col = 0, alphabet=None, reporting=False) -> pd.DataFrame:
+    """Non-mutatively adds 'end_keyword' to signify end of a section for FR documents. Also shifts the dataframe down and updates the columns."""
+    assert isinstance(start_col, str) or isinstance(start_col, int), "'start_col' must be index of column or name of column."
+    assert in_df(start_col, df), f"start_col '{start_col}' is not in df columns: {df.columns.tolist()}"
+
+    if end_col is not None:
+        assert isinstance(end_col, str) or isinstance(end_col, int), "'end_col' must be index of column or name of column."
+        assert in_df(end_col, df), 'Given end_col is not in the given df.'
+    else:
+        end_col = start_col
+
+    start_col_index = df.columns.get_loc(start_col) if isinstance(start_col, str) else start_col #extract index of start and end column
+    end_col_index = df.columns.get_loc(end_col) if isinstance(end_col, str) else end_col #extract index of start and end column
+    
+    copy = df.copy()
+    copy = heading_finder(copy, start_col=0, start=given_start, start_logic='contains') # no ending logic just take all rows below the starting point
+    col = copy.columns[start_col_index]
+    try:
+        if alphabet is None:
+            na_indices = copy[copy[col].isna()].index
+            if na_indices.empty:
+                raise ValueError("No NaN row found to mark as end of section.")
+            ending_row_index = na_indices[0]
+        else:
+            valid_rows: pd.DataFrame = copy[copy[col].isin(alphabet)]
+            if valid_rows.empty:
+                raise ValueError("No valid rows with alphabet keys found.")
+            ending_row_index = valid_rows.index[-1] + 1
+
+        if ending_row_index < len(copy):
+            copy.iloc[ending_row_index, end_col_index] = adding_end_keyword
+    except Exception as e:
+           print(f"Warning: Could not insert ending keyword '{adding_end_keyword}' in column {end_col}, received exception\n{e}")
+    if reporting:
+        print(f"Inserted '{adding_end_keyword}' at row {ending_row_index}, col '{copy.columns[end_col_index]}'")
+    return copy
